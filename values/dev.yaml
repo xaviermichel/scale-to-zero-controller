@@ -1,0 +1,37 @@
+image:
+  repository: eu.gcr.io/neokube/scale-to-zero-controller
+  tag: latest
+
+pod:
+  extraEnvMap:
+    JAVA_TOOL_OPTIONS: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8083,suspend=n"
+    SPRING_PROFILES_ACTIVE: dev
+    EXTENSION_EXPOSER_ENABLED: true
+    EXTENSION_EXPOSER_DOMAIN: neokube.neo9.pro
+
+service:
+  additionalPorts:
+    - name: tcp-debug
+      port: 8083
+      protocol: TCP
+      targetPort: 8083
+    - name: tcp-handler
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+
+# An ingress is not required
+# It's here for remote development purpose only.
+ingress:
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    external-dns.alpha.kubernetes.io/ttl: "5"
+    nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 400M
+  limits:
+    cpu: 1000m
+    memory: 800M

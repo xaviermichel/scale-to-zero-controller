@@ -1,0 +1,23 @@
+server:
+  port: 8082
+
+spring:
+  main:
+    banner-mode: "off"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+logging:
+  level:
+    io.neo9.scaler: DEBUG
+    #io.javaoperatorsdk.operator: WARN
+
+javaoperatorsdk:
+  controllers:
+    visitorgroupcontroller:
+      retry:
+        maxAttempts: 3

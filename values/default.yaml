@@ -1,0 +1,36 @@
+image:
+  repository: neo9sas/scale-to-zero-controller
+  pullPolicy: Always
+  tag: latest
+
+pod:
+  env:
+    values: []
+
+# remove proxy jump to directly have to the pod at the origin of the request
+#       source -> tcpHandler
+# and not
+#       source -> envoy -> tcphandler
+podAnnotations:
+  sidecar.istio.io/inject: "false"
+
+serviceAccount:
+  create: true
+  name: "scale-to-zero-controller-sa"
+
+healthCheck:
+  path: "/actuator/health"
+
+service:
+  port: 8082
+
+clusterrole:
+  enabled: true
+  autoBindClusteRole: true
+  rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["get", "create"]

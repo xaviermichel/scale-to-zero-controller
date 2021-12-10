@@ -1,0 +1,4 @@
+logging:
+  level:
+    io.neo9.scaler: TRACE
+
