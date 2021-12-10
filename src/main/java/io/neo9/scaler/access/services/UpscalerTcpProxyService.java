@@ -97,6 +97,8 @@ public class UpscalerTcpProxyService {
 				// TODO : scale up
 			}
 
+			// TODO: add security target != self
+
 //			InetSocketAddress clientRecipient = new InetSocketAddress(service.getSpec().getClusterIP(), ctx.remoteAddress().getPort());
 			InetSocketAddress clientRecipient = new InetSocketAddress("34.102.134.230", 80);
 			ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
