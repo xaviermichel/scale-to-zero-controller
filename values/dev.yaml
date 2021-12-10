@@ -16,9 +16,9 @@ service:
       protocol: TCP
       targetPort: 8083
     - name: tcp-handler
-      port: 9090
+      port: 8080
       protocol: TCP
-      targetPort: 9090
+      targetPort: 8080
 
 # An ingress is not required
 # It's here for remote development purpose only.

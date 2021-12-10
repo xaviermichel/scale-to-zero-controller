@@ -61,8 +61,8 @@ public class RequestHandler {
 					}
 				});
 
-		log.info("listen at {}:{}", "0.0.0.0", 9090);
-		return tcpBootstrap.bind("0.0.0.0", 9090);
+		log.info("listen at {}:{}", "0.0.0.0", 8080);
+		return tcpBootstrap.bind("0.0.0.0", 8080);
 	}
 
 }

@@ -34,3 +34,6 @@ clusterrole:
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["get", "create"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["watch", "get", "list", "update", "patch"]
