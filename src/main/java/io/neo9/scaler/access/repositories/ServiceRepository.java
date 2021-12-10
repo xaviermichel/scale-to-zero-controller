@@ -18,6 +18,14 @@ public class ServiceRepository {
 		this.kubernetesClient = kubernetesClient;
 	}
 
+	public Service find(String namespace, String name) {
+		return kubernetesClient.services()
+				.inNamespace(namespace)
+				.withName(name)
+				.fromServer()
+				.get();
+	}
+
 	public Optional<Service> findServiceByIp(String ipAddress) {
 		return kubernetesClient.services().inAnyNamespace().list().getItems()
 				.stream()

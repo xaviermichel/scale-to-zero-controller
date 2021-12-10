@@ -8,6 +8,10 @@ pod:
     SPRING_PROFILES_ACTIVE: dev
     EXTENSION_EXPOSER_ENABLED: true
     EXTENSION_EXPOSER_DOMAIN: neokube.neo9.pro
+    LOGGING_LEVEL_IO_NEO9_SCALER: TRACE
+
+healthCheck:
+  failureThreshold: 100 # for breakpoint debuging purpose
 
 service:
   additionalPorts:
@@ -16,9 +20,9 @@ service:
       protocol: TCP
       targetPort: 8083
     - name: tcp-handler
-      port: 9090
+      port: 8080
       protocol: TCP
-      targetPort: 9090
+      targetPort: 8080
 
 # An ingress is not required
 # It's here for remote development purpose only.

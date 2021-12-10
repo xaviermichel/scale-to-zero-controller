@@ -25,23 +25,51 @@ jobs:
     - name: Upload image
       uses: ishworkh/docker-image-artifact-upload@v1
       with:
-        image: "docker.io/neo9sas/ingress-access-operator:latest"
+        image: "docker.io/neo9sas/scale-to-zero-controller:latest"
 
-  publish:
+  integration-tests:
     needs: [build]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        #k8s_version: [v1.19.12-k3s1, v1.20.8-k3s1, v1.21.2-k3s1, v1.22.1-rc1-k3s1]
+        k8s_version: [v1.21.2-k3s1]
     steps:
-    - name: Download image
+    - uses: actions/checkout@v2
+    - name: Download test image
       uses: ishworkh/docker-image-artifact-download@v1
       with:
-        image: "docker.io/neo9sas/ingress-access-operator:latest"
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v1
+        image: "docker.io/neo9sas/scale-to-zero-controller:latest"
+    - uses: debianmaster/actions-k3s@master
+      id: k3s
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    - name: Tag and push image
-      id: tag_push_docker_image
+        version: ${{ matrix.k8s_version }}
+    - name: test on k3s
       run: |
-        docker tag docker.io/neo9sas/ingress-access-operator:latest ${{ secrets.DOCKER_HUB_IMAGE }}:latest
-        docker push ${{ secrets.DOCKER_HUB_IMAGE }}:latest
+        docker ps
+        cd scripts
+        make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
+        make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
+        ./quick-integration-test.sh || testsFailed=1
+        cd -
+        exit ${testsFailed}
+
+  #publish:
+  #  needs: [build]
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #  - name: Download image
+  #    uses: ishworkh/docker-image-artifact-download@v1
+  #    with:
+  #      image: "docker.io/neo9sas/ingress-access-operator:latest"
+  #  - name: Log in to Docker Hub
+  #    uses: docker/login-action@v1
+  #    with:
+  #      username: ${{ secrets.DOCKER_USERNAME }}
+  #      password: ${{ secrets.DOCKER_PASSWORD }}
+  #  - name: Tag and push image
+  #    id: tag_push_docker_image
+  #    run: |
+  #      docker tag docker.io/neo9sas/ingress-access-operator:latest ${{ secrets.DOCKER_HUB_IMAGE }}:latest
+  #      docker push ${{ secrets.DOCKER_HUB_IMAGE }}:latest
+#

@@ -4,8 +4,8 @@ image:
   tag: latest
 
 pod:
-  env:
-    values: []
+  extraEnvMap:
+    LOGGING_LEVEL_IO_NEO9_SCALER: INFO
 
 # remove proxy jump to directly have to the pod at the origin of the request
 #       source -> tcpHandler
@@ -23,6 +23,8 @@ healthCheck:
 
 service:
   port: 8082
+  labels:
+    scaling.neo9.io/is-scaler: "true"
 
 clusterrole:
   enabled: true
@@ -30,7 +32,13 @@ clusterrole:
   rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "services"]
-    verbs: ["get", "list"]
+    verbs: ["watch", "get", "list"]
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["get", "create"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["watch", "get", "list", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "update", "patch"]

@@ -45,7 +45,7 @@ public class RequestHandler {
 				.childOption(ChannelOption.SO_LINGER, 1)
 				.childHandler(new ChannelInitializer<NioSocketChannel>() {
 					@Override
-					protected void initChannel(NioSocketChannel ctx) throws Exception {
+					protected void initChannel(NioSocketChannel ctx) {
 						log.debug("handling new client connection from {}", ctx.remoteAddress().toString());
 						ctx.pipeline()
 								//timeout
@@ -56,13 +56,12 @@ public class RequestHandler {
 										return super.newIdleStateEvent(state, first);
 									}
 								});
-
 						upscalerTcpProxyService.forwardRequest(ctx);
 					}
 				});
 
-		log.info("listen at {}:{}", "0.0.0.0", 9090);
-		return tcpBootstrap.bind("0.0.0.0", 9090);
+		log.info("listen at {}:{}", "0.0.0.0", 8080);
+		return tcpBootstrap.bind("0.0.0.0", 8080);
 	}
 
 }

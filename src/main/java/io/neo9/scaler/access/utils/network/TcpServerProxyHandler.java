@@ -34,7 +34,10 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 
 	private List<ByteBuf> clientBuffs;
 
-	public TcpServerProxyHandler() {
+	private final InetSocketAddress clientRecipient;
+
+	public TcpServerProxyHandler(InetSocketAddress clientRecipient) {
+		this.clientRecipient = clientRecipient;
 	}
 
 	@Override
@@ -50,7 +53,6 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 		logger.trace("channel id {}, pc is null {}, {}", clientChannel.id().toString(), (remoteChannel == null), msg.readableBytes());
 		if (remoteChannel == null && proxyClient == null) {
 			proxyClient = new Bootstrap();
-			InetSocketAddress clientRecipient = new InetSocketAddress("34.102.134.230", 80);
 
 			proxyClient.group(clientChannel.eventLoop()).channel(NioSocketChannel.class)
 					.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 60 * 1000)

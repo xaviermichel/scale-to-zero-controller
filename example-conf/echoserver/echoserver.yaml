@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echoserver-deployment
+  namespace: default
+  labels:
+    app.kubernetes.io/name: "echoserver"
+    app.kubernetes.io/instance: "echoserver"
+    scaling.neo9.io/is-scalable: "true"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "echoserver"
+      app.kubernetes.io/instance: "echoserver"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: "echoserver"
+        app.kubernetes.io/instance: "echoserver"
+    spec:
+      containers:
+        - name: echoserver
+          image: k8s.gcr.io/echoserver:1.4
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echoserver-deployment
+  namespace: default
+  labels:
+    app.kubernetes.io/name: "echoserver"
+    app.kubernetes.io/instance: "echoserver"
+    scaling.neo9.io/is-scalable: "true"
+    ingress.neo9.io/expose: "true"
+  annotations:
+    ingress.neo9.io/expose-labels: |-
+      ingress.neo9.io/access-operator-enabled: "true"
+    ingress.neo9.io/expose-annotations: |-
+      kubernetes.io/ingress.class: nginx-istio
+      external-dns.alpha.kubernetes.io/ttl: "5"
+      ingress.neo9.io/allowed-visitors: neo9
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+spec:
+  selector:
+    app.kubernetes.io/name: "echoserver"
+    app.kubernetes.io/instance: "echoserver"
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
