@@ -55,8 +55,8 @@ public class UpscalerTcpProxyService {
 		Pod sourcePod = podByIp.get();
 		log.info("forwarding request from {} [{}]", sourcePod.getMetadata().getName(), sourcePodIp);
 
-		//boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals("istio-proxy"));
-		boolean sourcePodHasIstio = true; // TODO: check if istio is required
+		boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals("istio-proxy"));
+		//boolean sourcePodHasIstio = true; // TODO: check if istio is required
 		String containerNameForTcpTable = sourcePodHasIstio ? "istio-proxy" : sourcePod.getSpec().getContainers().get(0).getName();
 
 		String tcpTableRawOutput = podRepository.exec(sourcePod, containerNameForTcpTable, "cat", "/proc/net/tcp");
@@ -67,6 +67,7 @@ public class UpscalerTcpProxyService {
 				.map(ip -> serviceRepository.findServiceByIp(ip))
 				.filter(Optional::isPresent)
 				.map(opt -> opt.get())
+				.filter(service -> IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
 				.collect(Collectors.toList());
 
 		for (io.fabric8.kubernetes.api.model.Service service : targetedServices) {
@@ -78,7 +79,7 @@ public class UpscalerTcpProxyService {
 			for (String serviceToDeploymentMatchingLabel : serviceToDeploymentMatchingLabels) {
 				String serviceLabelValue = getLabelValue(serviceToDeploymentMatchingLabel, service);
 				if (StringUtils.isEmpty(serviceLabelValue)) {
-					log.warn("missing label on service : {}", serviceToDeploymentMatchingLabel);
+					log.warn("missing label on service {} : {}", serviceNamespaceAndName, serviceToDeploymentMatchingLabel);
 				}
 				serviceToDeploymentMatchLabels.put(serviceToDeploymentMatchingLabel, serviceLabelValue);
 			}
@@ -94,7 +95,7 @@ public class UpscalerTcpProxyService {
 			String deploymentNamespaceAndName = KubernetesUtils.getResourceNamespaceAndName(deployment);
 			log.debug("will see if the deployment {} needs to scale", deploymentNamespaceAndName);
 
-			if (! IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, deployment))) {
+			if (!IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, deployment))) {
 				log.warn("the deployment {}, does not have scaling label, won't do any action on it", deploymentNamespaceAndName);
 				ctx.pipeline().close();
 				return;

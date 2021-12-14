@@ -7,7 +7,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.neo9.scaler.access.services.EndpointHijackerService;
-import io.neo9.scaler.access.utils.backpressure.Debouncer;
 import io.neo9.scaler.access.utils.retry.RetryContext;
 import io.neo9.scaler.access.utils.retry.RetryableWatcher;
 import lombok.extern.slf4j.Slf4j;
@@ -30,13 +29,12 @@ public class EndpointsController implements ReconnectableWatcher {
 	private final RetryContext retryContext = new RetryContext();
 
 	private final BiFunction<Action, Endpoints, Void> onScalableEndpointEventReceived;
+
 	private final BiFunction<Action, Endpoints, Void> onControllerEndpointEventReceived;
 
 	private Watch endpointsWatchOnLabel;
 
 	private Watch controllerEndpointsWatchOnLabel;
-
-	private Debouncer debouncer = new Debouncer(30);
 
 	public EndpointsController(KubernetesClient kubernetesClient, EndpointHijackerService endpointHijackerService) {
 		this.kubernetesClient = kubernetesClient;
@@ -64,9 +62,7 @@ public class EndpointsController implements ReconnectableWatcher {
 				case ADDED:
 				case MODIFIED:
 					log.info("update event detected for endpoint : {}", endpointNamespaceAndName);
-					//debouncer.debounce(endpointNamespaceAndName, () -> {
-						endpointHijackerService.reconcileEndpointsWithNewControllerEndpoint(endpoint);
-					//});
+					endpointHijackerService.reconcileEndpointsWithNewControllerEndpoint(endpoint);
 				default:
 					// do nothing on deletion
 					break;
@@ -85,7 +81,6 @@ public class EndpointsController implements ReconnectableWatcher {
 		closeEndpointsWatchOnLabel();
 		closeControllerEndpointsWatchOnLabel();
 		retryContext.shutdown();
-		debouncer.shutdown();
 	}
 
 	private void closeEndpointsWatchOnLabel() {
