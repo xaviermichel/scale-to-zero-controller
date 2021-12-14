@@ -23,6 +23,8 @@ healthCheck:
 
 service:
   port: 8082
+  labels:
+    scaling.neo9.io/is-scaler: "true"
 
 clusterrole:
   enabled: true
@@ -37,3 +39,6 @@ clusterrole:
   - apiGroups: [""]
     resources: ["endpoints"]
     verbs: ["watch", "get", "list", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "update", "patch"]

@@ -1,5 +1,7 @@
 package io.neo9.scaler.access.repositories;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import io.fabric8.kubernetes.api.model.Endpoints;
@@ -23,6 +25,12 @@ public class EndpointRepository {
 				.withLabel("app.kubernetes.io/instance", "scale-to-zero-controller").list().getItems()
 				.stream()
 				.findFirst();
+	}
+
+	public List<Endpoints> findAllWithLabels( Map<String, String> filteringLabels) {
+		return kubernetesClient.endpoints().inAnyNamespace()
+				.withLabels(filteringLabels)
+				.list().getItems();
 	}
 
 	public Endpoints patch(Endpoints endpoint) {

@@ -1,4 +1,4 @@
-package io.neo9.scaler.access.utils.rate;
+package io.neo9.scaler.access.utils.backpressure;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -14,6 +14,16 @@ public class Debouncer {
 	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
 	private final ConcurrentHashMap<Object, Future<?>> delayedMap = new ConcurrentHashMap<>();
+
+	private final Integer delayInSeconds;
+
+	public Debouncer() {
+		this.delayInSeconds = 1;
+	}
+
+	public Debouncer(Integer delayInSeconds) {
+		this.delayInSeconds = delayInSeconds;
+	}
 
 	/**
 	 * Debounces {@code callable} by {@code delay}, i.e., schedules it to be executed after {@code delay},
@@ -34,14 +44,13 @@ public class Debouncer {
 	}
 
 	/**
-	 * debounce with default delay of 1 second
+	 * debounce with default delay of delayInSeconds second
 	 */
 	public void debounce(final Object key, final Runnable runnable) {
-		this.debounce(key, runnable, 1, TimeUnit.SECONDS);
+		this.debounce(key, runnable, delayInSeconds, TimeUnit.SECONDS);
 	}
 
 	public void shutdown() {
 		scheduler.shutdownNow();
 	}
 }
-

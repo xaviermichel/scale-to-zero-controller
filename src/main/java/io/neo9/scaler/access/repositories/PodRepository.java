@@ -39,7 +39,7 @@ public class PodRepository {
 
 			ExecWatch execWatch = kubernetesClient.pods()
 					.inNamespace(pod.getMetadata().getNamespace()).withName(pod.getMetadata().getName())
-					.inContainer(containerId) // TODO: and check if istio sidecar is present or throw business clean error
+					.inContainer(containerId)
 					.writingOutput(out)
 					.writingError(error)
 					.usingListener(new ExecListener() {
@@ -67,12 +67,12 @@ public class PodRepository {
 			latchTerminationStatus = execLatch.await(5, TimeUnit.SECONDS);
 		}
 		catch (InterruptedException e) {
-			e.printStackTrace();
+			log.error("Failed to exec command", e);
 		}
 		if (!latchTerminationStatus) {
 				log.warn("execution timeout");
 		}
-		log.info("Exec Output: {} ", out);
+		log.trace("exec output: {} ", out);
 		execWatch.close();
 		return out.toString();
 	}

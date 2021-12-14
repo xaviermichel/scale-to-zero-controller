@@ -18,6 +18,7 @@ import io.neo9.scaler.access.utils.network.TcpServerProxyHandler;
 import io.neo9.scaler.access.utils.network.TcpTableParser;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.stereotype.Service;
 
@@ -54,7 +55,11 @@ public class UpscalerTcpProxyService {
 		Pod sourcePod = podByIp.get();
 		log.info("forwarding request from {} [{}]", sourcePod.getMetadata().getName(), sourcePodIp);
 
-		String tcpTableRawOutput = podRepository.exec(sourcePod, "istio-proxy", "cat", "/proc/net/tcp");
+		//boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals("istio-proxy"));
+		boolean sourcePodHasIstio = true; // TODO: check if istio is required
+		String containerNameForTcpTable = sourcePodHasIstio ? "istio-proxy" : sourcePod.getSpec().getContainers().get(0).getName();
+
+		String tcpTableRawOutput = podRepository.exec(sourcePod, containerNameForTcpTable, "cat", "/proc/net/tcp");
 		List<io.fabric8.kubernetes.api.model.Service> targetedServices = TcpTableParser.parseTCPTable(tcpTableRawOutput).stream()
 				.filter(t -> t.getState().equals("1"))   // TCP_ESTABLISHED
 				.filter(t -> !t.getUid().equals("1337")) // from our app, not from envoy !
@@ -72,6 +77,9 @@ public class UpscalerTcpProxyService {
 			Map<String, String> serviceToDeploymentMatchLabels = new HashMap<>();
 			for (String serviceToDeploymentMatchingLabel : serviceToDeploymentMatchingLabels) {
 				String serviceLabelValue = getLabelValue(serviceToDeploymentMatchingLabel, service);
+				if (StringUtils.isEmpty(serviceLabelValue)) {
+					log.warn("missing label on service : {}", serviceToDeploymentMatchingLabel);
+				}
 				serviceToDeploymentMatchLabels.put(serviceToDeploymentMatchingLabel, serviceLabelValue);
 			}
 
@@ -93,9 +101,11 @@ public class UpscalerTcpProxyService {
 			}
 
 			// wait for replica
-			if (deployment.getStatus().getReadyReplicas() > 0) {
-				// TODO : scale up
+			if (deployment.getSpec().getReplicas() == 0) {
+				// TODO : not always scale to 1
+				deploymentRepository.scale(deployment, 1);
 			}
+			log.debug("Deployment {} have at least one available replica", deploymentNamespaceAndName);
 
 			// TODO: add security target != self
 
