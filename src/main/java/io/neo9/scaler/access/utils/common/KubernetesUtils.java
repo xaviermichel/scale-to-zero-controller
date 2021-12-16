@@ -45,5 +45,4 @@ public class KubernetesUtils {
 		String name = hasMetadata.getMetadata().getName();
 		return String.format("%s/%s", namespace, name);
 	}
-
 }

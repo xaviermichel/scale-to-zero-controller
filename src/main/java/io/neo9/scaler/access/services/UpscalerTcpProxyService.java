@@ -10,10 +10,11 @@ import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
+import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
-import io.neo9.scaler.access.utils.common.KubernetesUtils;
 import io.neo9.scaler.access.utils.network.TcpServerProxyHandler;
 import io.neo9.scaler.access.utils.network.TcpTableParser;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
 
 @Service
 @Slf4j
@@ -36,10 +38,16 @@ public class UpscalerTcpProxyService {
 
 	private final DeploymentRepository deploymentRepository;
 
-	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository) {
+	private final EndpointSliceRepository endpointSliceRepository;
+
+	private final EndpointSliceHijackerService endpointSliceHijackerService;
+
+	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, EndpointSliceRepository endpointSliceRepository, EndpointSliceHijackerService endpointSliceHijackerService) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
 		this.deploymentRepository = deploymentRepository;
+		this.endpointSliceRepository = endpointSliceRepository;
+		this.endpointSliceHijackerService = endpointSliceHijackerService;
 	}
 
 	public void forwardRequest(NioSocketChannel ctx) {
@@ -71,10 +79,10 @@ public class UpscalerTcpProxyService {
 				.collect(Collectors.toList());
 
 		for (io.fabric8.kubernetes.api.model.Service service : targetedServices) {
-			String serviceNamespaceAndName = KubernetesUtils.getResourceNamespaceAndName(service);
+			String serviceNamespaceAndName = getResourceNamespaceAndName(service);
 			log.debug("checking if workload behind service {} [{}] have to upscale", serviceNamespaceAndName, service.getSpec().getClusterIP());
 
-			Set<String> serviceToDeploymentMatchingLabels = Set.of("app.kubernetes.io/name", "app.kubernetes.io/version", "app.kubernetes.io/instance");
+			Set<String> serviceToDeploymentMatchingLabels = Set.of("app.kubernetes.io/name", "app.kubernetes.io/version", "app.kubernetes.io/instance"); // TODO : pass as constant
 			Map<String, String> serviceToDeploymentMatchLabels = new HashMap<>();
 			for (String serviceToDeploymentMatchingLabel : serviceToDeploymentMatchingLabels) {
 				String serviceLabelValue = getLabelValue(serviceToDeploymentMatchingLabel, service);
@@ -84,7 +92,7 @@ public class UpscalerTcpProxyService {
 				serviceToDeploymentMatchLabels.put(serviceToDeploymentMatchingLabel, serviceLabelValue);
 			}
 
-			Optional<Deployment> deploymentAttachedToService = deploymentRepository.findByLabels(service.getMetadata().getNamespace(), serviceToDeploymentMatchLabels);
+			Optional<Deployment> deploymentAttachedToService = deploymentRepository.findOneByLabels(service.getMetadata().getNamespace(), serviceToDeploymentMatchLabels);
 			if (deploymentAttachedToService.isEmpty()) {
 				log.warn("the forwarder proxy could not identify the deployment attached to the service : {}, dropping request", serviceNamespaceAndName);
 				ctx.pipeline().close();
@@ -92,7 +100,7 @@ public class UpscalerTcpProxyService {
 			}
 
 			Deployment deployment = deploymentAttachedToService.get();
-			String deploymentNamespaceAndName = KubernetesUtils.getResourceNamespaceAndName(deployment);
+			String deploymentNamespaceAndName = getResourceNamespaceAndName(deployment);
 			log.debug("will see if the deployment {} needs to scale", deploymentNamespaceAndName);
 
 			if (!IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, deployment))) {
@@ -104,12 +112,15 @@ public class UpscalerTcpProxyService {
 			// wait for replica
 			if (deployment.getSpec().getReplicas() == 0) {
 				// TODO : not always scale to 1
-				deploymentRepository.scale(deployment, 1);
+				deploymentRepository.scale(deployment, 1, true);
 			}
 			log.debug("Deployment {} have at least one available replica", deploymentNamespaceAndName);
 
-			// TODO: add security target != self
+			// release endpoint slice
+			EndpointSlice endpointSlice = endpointSliceRepository.findOneByLabels(service.getMetadata().getNamespace(), serviceToDeploymentMatchLabels).get();
+			endpointSliceHijackerService.releaseHijacked(endpointSlice);
 
+			// TODO: balance on 1st pod
 //			InetSocketAddress clientRecipient = new InetSocketAddress(service.getSpec().getClusterIP(), ctx.remoteAddress().getPort());
 			InetSocketAddress clientRecipient = new InetSocketAddress("34.102.134.230", 80);
 			ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
