@@ -32,7 +32,7 @@ clusterrole:
   rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "services"]
-    verbs: ["get", "list"]
+    verbs: ["watch", "get", "list"]
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["get", "create"]

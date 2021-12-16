@@ -30,6 +30,7 @@ public class EndpointSliceRepository {
 
 	public Optional<EndpointSlice> findOneByLabels(String namespace, Map<String, String> filteringLabels) {
 		return kubernetesClient.discovery().v1beta1().endpointSlices()
+				.inNamespace(namespace)
 				.withLabels(filteringLabels)
 				.list().getItems().stream()
 				.findFirst();

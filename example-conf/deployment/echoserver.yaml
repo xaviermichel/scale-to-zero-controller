@@ -5,18 +5,19 @@ metadata:
   namespace: dev-xmichel
   labels:
     app.kubernetes.io/name: "echoserver"
-    app.kubernetes.io/version: "1.4"
     app.kubernetes.io/instance: "echoserver"
     scaling.neo9.io/is-scalable: "true"
 spec:
   selector:
     matchLabels:
-      app: echoserver-deployment
+      app.kubernetes.io/name: "echoserver"
+      app.kubernetes.io/instance: "echoserver"
   replicas: 1
   template:
     metadata:
       labels:
-        app: echoserver-deployment
+        app.kubernetes.io/name: "echoserver"
+        app.kubernetes.io/instance: "echoserver"
     spec:
       containers:
         - name: echoserver
@@ -27,11 +28,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: echoserver-deployment
+  namespace: dev-xmichel
   labels:
-    scaling.neo9.io/is-scalable: "true"
     app.kubernetes.io/name: "echoserver"
-    app.kubernetes.io/version: "1.4"
     app.kubernetes.io/instance: "echoserver"
+    scaling.neo9.io/is-scalable: "true"
     ingress.neo9.io/expose: "true"
   annotations:
     ingress.neo9.io/expose-labels: |-
@@ -41,11 +43,10 @@ metadata:
       external-dns.alpha.kubernetes.io/ttl: "5"
       ingress.neo9.io/allowed-visitors: neo9
       nginx.ingress.kubernetes.io/service-upstream: "true"
-  name: echoserver-deployment
-  namespace: dev-xmichel
 spec:
   selector:
-    app: echoserver-deployment
+    app.kubernetes.io/name: "echoserver"
+    app.kubernetes.io/instance: "echoserver"
   ports:
     - name: http
       port: 8080

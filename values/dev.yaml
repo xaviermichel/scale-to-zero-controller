@@ -10,6 +10,9 @@ pod:
     EXTENSION_EXPOSER_DOMAIN: neokube.neo9.pro
     LOGGING_LEVEL_IO_NEO9_SCALER: DEBUG
 
+healthCheck:
+  failureThreshold: 100 # for breakpoint debuging purpose
+
 service:
   additionalPorts:
     - name: tcp-debug

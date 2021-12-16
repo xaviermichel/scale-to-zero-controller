@@ -1,6 +1,8 @@
 package io.neo9.scaler.access.repositories;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -25,10 +27,24 @@ public class PodRepository {
 	}
 
 	public Optional<Pod> findPodByIp(String ipAddress) {
-		return kubernetesClient.pods().inAnyNamespace().list().getItems()
-				.stream()
+		return kubernetesClient.pods()
+				.inAnyNamespace()
+				.list().getItems().stream()
 				.filter(pod -> ipAddress.equals(pod.getStatus().getPodIP()))
 				.findFirst();
+	}
+
+	public List<Pod> findAllWithLabels(String namespace, Map<String, String> filteringLabels) {
+		return kubernetesClient.pods()
+				.inNamespace(namespace)
+				.withLabels(filteringLabels)
+				.list().getItems();
+	}
+
+	public Pod waitUntilPodIsReady(Pod pod, int timeoutInSeconds) {
+		return kubernetesClient.resource(pod)
+				.inNamespace(pod.getMetadata().getNamespace())
+				.waitUntilReady(timeoutInSeconds, TimeUnit.SECONDS);
 	}
 
 	public String exec(Pod pod, String containerId, String... command) {

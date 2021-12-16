@@ -82,17 +82,17 @@ public class UpscalerTcpProxyService {
 			String serviceNamespaceAndName = getResourceNamespaceAndName(service);
 			log.debug("checking if workload behind service {} [{}] have to upscale", serviceNamespaceAndName, service.getSpec().getClusterIP());
 
-			Set<String> serviceToDeploymentMatchingLabels = Set.of("app.kubernetes.io/name", "app.kubernetes.io/version", "app.kubernetes.io/instance"); // TODO : pass as constant
-			Map<String, String> serviceToDeploymentMatchLabels = new HashMap<>();
+			Set<String> serviceToDeploymentMatchingLabels = Set.of("app.kubernetes.io/name", "app.kubernetes.io/instance"); // TODO : pass as constant
+			Map<String, String> appIdentifierLabels = new HashMap<>();
 			for (String serviceToDeploymentMatchingLabel : serviceToDeploymentMatchingLabels) {
 				String serviceLabelValue = getLabelValue(serviceToDeploymentMatchingLabel, service);
 				if (StringUtils.isEmpty(serviceLabelValue)) {
 					log.warn("missing label on service {} : {}", serviceNamespaceAndName, serviceToDeploymentMatchingLabel);
 				}
-				serviceToDeploymentMatchLabels.put(serviceToDeploymentMatchingLabel, serviceLabelValue);
+				appIdentifierLabels.put(serviceToDeploymentMatchingLabel, serviceLabelValue);
 			}
 
-			Optional<Deployment> deploymentAttachedToService = deploymentRepository.findOneByLabels(service.getMetadata().getNamespace(), serviceToDeploymentMatchLabels);
+			Optional<Deployment> deploymentAttachedToService = deploymentRepository.findOneByLabels(service.getMetadata().getNamespace(), appIdentifierLabels);
 			if (deploymentAttachedToService.isEmpty()) {
 				log.warn("the forwarder proxy could not identify the deployment attached to the service : {}, dropping request", serviceNamespaceAndName);
 				ctx.pipeline().close();
@@ -117,12 +117,14 @@ public class UpscalerTcpProxyService {
 			log.debug("Deployment {} have at least one available replica", deploymentNamespaceAndName);
 
 			// release endpoint slice
-			EndpointSlice endpointSlice = endpointSliceRepository.findOneByLabels(service.getMetadata().getNamespace(), serviceToDeploymentMatchLabels).get();
+			EndpointSlice endpointSlice = endpointSliceRepository.findOneByLabels(service.getMetadata().getNamespace(), appIdentifierLabels).get();
 			endpointSliceHijackerService.releaseHijacked(endpointSlice);
 
-			// TODO: balance on 1st pod
-//			InetSocketAddress clientRecipient = new InetSocketAddress(service.getSpec().getClusterIP(), ctx.remoteAddress().getPort());
-			InetSocketAddress clientRecipient = new InetSocketAddress("34.102.134.230", 80);
+			// balance on 1st pod
+			Pod targetPod = podRepository.findAllWithLabels(service.getMetadata().getNamespace(), appIdentifierLabels).get(0);
+			targetPod = podRepository.waitUntilPodIsReady(targetPod, 60);
+
+			InetSocketAddress clientRecipient = new InetSocketAddress(targetPod.getStatus().getPodIP(), ctx.remoteAddress().getPort());
 			ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
 		}
 

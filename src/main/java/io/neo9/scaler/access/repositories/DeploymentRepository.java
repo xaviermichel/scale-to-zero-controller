@@ -21,6 +21,7 @@ public class DeploymentRepository {
 
 	public Optional<Deployment> findOneByLabels(String namespace, Map<String, String> filteringLabels) {
 		return kubernetesClient.apps().deployments()
+				.inNamespace(namespace)
 				.withLabels(filteringLabels)
 				.list().getItems().stream()
 				.findFirst();

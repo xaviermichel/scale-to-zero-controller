@@ -40,7 +40,7 @@ public class EndpointSliceHijackerService {
 
 	public void releaseHijacked(EndpointSlice appEndpointSlice) {
 		if (! ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE.equals(getLabelValue(ENDPOINT_SLICE_MANAGED_BY_KEY, appEndpointSlice))) {
-			log.warn("Cannot release an non hijacked endpoint", getResourceNamespaceAndName(appEndpointSlice));
+			log.warn("Cannot release an non hijacked endpoint : {}", getResourceNamespaceAndName(appEndpointSlice));
 			return;
 		}
 		appEndpointSlice.getMetadata().getLabels().put(ENDPOINT_SLICE_MANAGED_BY_KEY, ENDPOINT_SLICE_MANAGED_BY_CLOUD_PROVIDER_CONTROLLER_VALUE);
