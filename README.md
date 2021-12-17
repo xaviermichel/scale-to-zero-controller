@@ -5,7 +5,7 @@ Motivation
 ----------
 
 The goal of this controller is to provide a way to start a kubernetes workload on demand (mean when there is incoming TCP traffic on it), and shutdown it after that. It very useful in order to :
-* not need kubernets nodes all the time (FinOps)
+* we do not need kubernetes nodes all the time (FinOps)
 * distribute daily developments environements start according to real team needs
 
 To acheive that, the controller takes control of the `endpointslice` associated to your application when the application is scaled to 0. The controller is aware of incoming traffic to your service, and can scale up the workload and give back `endpointslice` to your cloud provider controller.
