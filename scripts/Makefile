@@ -1,9 +1,11 @@
 CLUSTER_NAME_AUTOPREFIX="k3d-"
 CLUSTER_NAME="scale-to-zero-controller-test"
 CLUSTER_NAME_SERVERSUFFIX="-server-0"
-CLUSTER_VERSION=v1.21.3-k3s1
 
 CLUSTER_KUBE_CONTEXT=$(CLUSTER_NAME_AUTOPREFIX)$(CLUSTER_NAME)
+
+CLUSTER_VERSION=v1.21.3-k3s1
+
 
 start-k3s-for-test:
 	k3d cluster create $(CLUSTER_NAME) --image rancher/k3s:$(CLUSTER_VERSION)
