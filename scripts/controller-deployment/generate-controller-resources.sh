@@ -5,7 +5,7 @@
 
 set -x
 
-targetDir=./controller-deployment/
+targetDir=./
 
 helm repo add neo9charts https://charts.neo9.pro
 helm repo update
