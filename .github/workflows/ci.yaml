@@ -46,6 +46,7 @@ jobs:
         version: ${{ matrix.k8s_version }}
     - name: test on k3s
       run: |
+        docker ps
         cd scripts
         make CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
         make CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
