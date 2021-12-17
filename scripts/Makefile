@@ -27,9 +27,8 @@ run-integration-tests:
 	./quick-integration-test.sh $(CLUSTER_KUBE_CONTEXT)
 
 start-controller:
-	if [ ! -z "$(CLUSTER_KUBE_CONTEXT)" ]; then
-	    kubeContextArgs="--context=$(CLUSTER_KUBE_CONTEXT)"
-	fi
+	kubeContextArgs=
+	if [ ! -z "$(CLUSTER_KUBE_CONTEXT)" ]; then kubeContextArgs="--context=$(CLUSTER_KUBE_CONTEXT)"; fi
 	kubectl ${kubeContextArgs} apply -f controller-deployment/
 
 full-local-integration-tests-run: start-k3s-for-test run-integration-tests stop-k3s-for-test
