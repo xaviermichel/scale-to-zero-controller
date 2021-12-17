@@ -16,6 +16,7 @@ import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
 import io.neo9.scaler.access.utils.network.TcpServerProxyHandler;
+import io.neo9.scaler.access.utils.network.TcpTableEntry;
 import io.neo9.scaler.access.utils.network.TcpTableParser;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
+import static java.util.stream.Collectors.*;
 
 @Service
 @Slf4j
@@ -68,16 +70,20 @@ public class UpscalerTcpProxyService {
 		String containerNameForTcpTable = sourcePodHasIstio ? "istio-proxy" : sourcePod.getSpec().getContainers().get(0).getName();
 
 		String tcpTableRawOutput = podRepository.exec(sourcePod, containerNameForTcpTable, "cat", "/proc/net/tcp");
-		List<io.fabric8.kubernetes.api.model.Service> targetedServices = TcpTableParser.parseTCPTable(tcpTableRawOutput).stream()
+		List<TcpTableEntry> tcpTableEntries = TcpTableParser.parseTCPTable(tcpTableRawOutput);
+		log.trace("decoded entries : {}", tcpTableEntries);
+		List<io.fabric8.kubernetes.api.model.Service> targetedServices = tcpTableEntries.stream()
 				.filter(t -> t.getState().equals("1"))   // TCP_ESTABLISHED
 				.filter(t -> !t.getUid().equals("1337")) // from our app, not from envoy !
 				.map(t -> t.getRemoteAddress())
+				.distinct()
 				.map(ip -> serviceRepository.findServiceByIp(ip))
 				.filter(Optional::isPresent)
 				.map(opt -> opt.get())
 				.filter(service -> IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
-				.collect(Collectors.toList());
+				.collect(toList());
 
+		log.debug("list of service which may require scale : {}", targetedServices.stream().map(service -> getResourceNamespaceAndName(service)).collect(toList()));
 		for (io.fabric8.kubernetes.api.model.Service service : targetedServices) {
 			String serviceNamespaceAndName = getResourceNamespaceAndName(service);
 			log.debug("checking if workload behind service {} [{}] have to upscale", serviceNamespaceAndName, service.getSpec().getClusterIP());
@@ -127,9 +133,9 @@ public class UpscalerTcpProxyService {
 			targetPod = podRepository.waitUntilPodIsReady(targetPod, 60);
 			log.debug("pod {} is ready", targetPodNameAndNamespace);
 
+			// TODO : balance on this pod ? and if there is others services in the loop ?
 			InetSocketAddress clientRecipient = new InetSocketAddress(targetPod.getStatus().getPodIP(), ctx.localAddress().getPort());
 			ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
 		}
-
 	}
 }
