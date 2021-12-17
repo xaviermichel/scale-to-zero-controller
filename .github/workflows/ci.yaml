@@ -47,8 +47,8 @@ jobs:
     - name: test on k3s
       run: |
         cd scripts
-        make import-image-in-k3s
-        make start-controller
+        make CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
+        make CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
         ./quick-integration-test.sh || testsFailed=1
         cd -
         exit ${testsFailed}
