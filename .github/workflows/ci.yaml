@@ -48,8 +48,8 @@ jobs:
       run: |
         docker ps
         cd scripts
-        make CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
-        make CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
+        make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
+        make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
         ./quick-integration-test.sh || testsFailed=1
         cd -
         exit ${testsFailed}
