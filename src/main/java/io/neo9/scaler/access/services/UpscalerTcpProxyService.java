@@ -122,9 +122,12 @@ public class UpscalerTcpProxyService {
 
 			// balance on 1st pod
 			Pod targetPod = podRepository.findAllWithLabels(service.getMetadata().getNamespace(), appIdentifierLabels).get(0);
+			String targetPodNameAndNamespace = getResourceNamespaceAndName(targetPod);
+			log.debug("waiting for pod {} to be READY", targetPodNameAndNamespace);
 			targetPod = podRepository.waitUntilPodIsReady(targetPod, 60);
+			log.debug("pod {} is ready", targetPodNameAndNamespace);
 
-			InetSocketAddress clientRecipient = new InetSocketAddress(targetPod.getStatus().getPodIP(), ctx.remoteAddress().getPort());
+			InetSocketAddress clientRecipient = new InetSocketAddress(targetPod.getStatus().getPodIP(), ctx.localAddress().getPort());
 			ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
 		}
 

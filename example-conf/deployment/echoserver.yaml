@@ -24,6 +24,14 @@ spec:
           image: k8s.gcr.io/echoserver:1.4
           ports:
             - containerPort: 8080
+          readinessProbe:
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
 ---
 apiVersion: v1
 kind: Service
