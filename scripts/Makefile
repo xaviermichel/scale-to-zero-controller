@@ -1,3 +1,4 @@
+CLUSTER_NAME_AUTOPREFIX=k3d-
 CLUSTER_NAME=scale-to-zero-controller-test
 CLUSTER_VERSION=v1.21.3-k3s1
 #CLUSTER_VERSION=v1.22.1-rc1-k3s1
@@ -12,16 +13,16 @@ stop-k3s-for-test:
 import-image-in-k3s:
 	mkdir -p ../build/images || true
 	docker save --output ../build/images/scale-to-zero-controller-latest.tar docker.io/neo9sas/scale-to-zero-controller:latest
-	docker cp ../build/images/scale-to-zero-controller-latest.tar k3d-$(CLUSTER_NAME)-server-0:/tmp
-	docker exec k3d-$(CLUSTER_NAME)-server-0 sh -c "ctr image import /tmp/scale-to-zero-controller-latest.tar"
-	docker exec k3d-$(CLUSTER_NAME)-server-0 sh -c "ctr image list"
+	docker cp ../build/images/scale-to-zero-controller-latest.tar $(CLUSTER_NAME_AUTOPREFIX)$(CLUSTER_NAME)-server-0:/tmp
+	docker exec $(CLUSTER_NAME_AUTOPREFIX)$(CLUSTER_NAME)-server-0 sh -c "ctr image import /tmp/scale-to-zero-controller-latest.tar"
+	docker exec $(CLUSTER_NAME_AUTOPREFIX)$(CLUSTER_NAME)-server-0 sh -c "ctr image list"
 
 setup-k3s-for-test: start-k3s-for-test import-image-in-k3s
 
 run-integration-tests:
-	./quick-integration-test.sh k3d-$(CLUSTER_NAME)
+	./quick-integration-test.sh $(CLUSTER_NAME_AUTOPREFIX)$(CLUSTER_NAME)
 
 start-controller:
-	kubectl --context=k3d-$(CLUSTER_NAME) apply -f controller-deployment/
+	kubectl --context=$(CLUSTER_NAME_AUTOPREFIX)$(CLUSTER_NAME) apply -f controller-deployment/
 
 full-local-integration-tests-run: start-k3s-for-test run-integration-tests stop-k3s-for-test
