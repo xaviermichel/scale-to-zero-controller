@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scale-to-zero-controller
+---
+# missing namespace hack
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: scale-to-zero-controller-sa
+  namespace: scale-to-zero-controller
+  labels:
+    helm.sh/chart: n9-api-0.8.0
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/managed-by: Helm
+    app: n9-api

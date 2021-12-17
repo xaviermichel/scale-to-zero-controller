@@ -1,0 +1,211 @@
+---
+# Source: n9-api/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: scale-to-zero-controller-sa
+  labels:
+    helm.sh/chart: n9-api-0.8.0
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/managed-by: Helm
+    app: n9-api
+---
+# Source: n9-api/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: scale-to-zero-controller
+  labels:
+    helm.sh/chart: n9-api-0.8.0
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/managed-by: Helm
+    app: n9-api
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  - services
+  verbs:
+  - watch
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - watch
+  - get
+  - list
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - update
+  - patch
+---
+# Source: n9-api/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: scale-to-zero-controller-n9-api
+  namespace: scale-to-zero-controller
+  labels:
+    helm.sh/chart: n9-api-0.8.0
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/managed-by: Helm
+    app: n9-api
+subjects:
+- kind: ServiceAccount
+  name: scale-to-zero-controller-sa
+  namespace: scale-to-zero-controller
+  apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: scale-to-zero-controller
+  apiGroup: ""
+---
+# Source: n9-api/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: scale-to-zero-controller-n9-api
+  namespace: scale-to-zero-controller
+  labels:
+    helm.sh/chart: n9-api-0.8.0
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/managed-by: Helm
+    app: n9-api
+    tier: api
+    scaling.neo9.io/is-scaler: "true"
+    metrics: prometheus
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8082
+    targetPort: 8082
+    protocol: TCP
+    name: http
+  - name: tcp-debug
+    port: 8083
+    protocol: TCP
+    targetPort: 8083
+  - name: tcp-handler
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+---
+# Source: n9-api/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scale-to-zero-controller-n9-api
+  namespace: scale-to-zero-controller
+  labels:
+    helm.sh/chart: n9-api-0.8.0
+    app.kubernetes.io/name: n9-api
+    app.kubernetes.io/instance: scale-to-zero-controller
+    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/managed-by: Helm
+    app: n9-api
+spec:
+  progressDeadlineSeconds: 70
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: n9-api
+      app.kubernetes.io/instance: scale-to-zero-controller
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app.kubernetes.io/name: n9-api
+        app.kubernetes.io/instance: scale-to-zero-controller
+        version: "latest"
+    spec:
+      serviceAccountName: scale-to-zero-controller-sa
+      securityContext:
+        {}
+      containers:
+        - name: n9-api
+          securityContext:
+            {}
+          image: docker.io/neo9sas/scale-to-zero-controller:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8082
+              protocol: TCP
+            - name: tcp-debug
+              containerPort: 8083
+            - name: tcp-handler
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 100
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 100
+          env:
+          - name: NODE_ENV
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: EXTENSION_EXPOSER_DOMAIN
+            value: "neokube.neo9.pro"
+          - name: EXTENSION_EXPOSER_ENABLED
+            value: "true"
+          - name: JAVA_TOOL_OPTIONS
+            value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8083,suspend=n"
+          - name: LOGGING_LEVEL_IO_NEO9_SCALER
+            value: "TRACE"
+          - name: SPRING_PROFILES_ACTIVE
+            value: "dev"
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 800M
+            requests:
+              cpu: 500m
+              memory: 400M
+          volumeMounts:
+      volumes:
