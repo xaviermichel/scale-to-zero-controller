@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 15099
 
 spring:
   main:
@@ -21,3 +21,8 @@ javaoperatorsdk:
     visitorgroupcontroller:
       retry:
         maxAttempts: 3
+
+scaler:
+  applicationIdentifierLabels:
+  - app.kubernetes.io/name
+  - app.kubernetes.io/instance

@@ -1,26 +1,24 @@
 package io.neo9.scaler.access.services;
 
 import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
+import io.neo9.scaler.access.config.ScaleToZeroConfig;
+import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
 import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
-import io.neo9.scaler.access.utils.network.TcpServerProxyHandler;
 import io.neo9.scaler.access.utils.network.TcpTableEntry;
 import io.neo9.scaler.access.utils.network.TcpTableParser;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.stereotype.Service;
 
@@ -28,7 +26,7 @@ import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
-import static java.util.stream.Collectors.*;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 @Service
 @Slf4j
@@ -44,27 +42,62 @@ public class UpscalerTcpProxyService {
 
 	private final EndpointSliceHijackerService endpointSliceHijackerService;
 
-	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, EndpointSliceRepository endpointSliceRepository, EndpointSliceHijackerService endpointSliceHijackerService) {
+	private final ScaleToZeroConfig scaleToZeroConfig;
+
+	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, EndpointSliceRepository endpointSliceRepository, EndpointSliceHijackerService endpointSliceHijackerService, ScaleToZeroConfig scaleToZeroConfig) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
 		this.deploymentRepository = deploymentRepository;
 		this.endpointSliceRepository = endpointSliceRepository;
 		this.endpointSliceHijackerService = endpointSliceHijackerService;
+		this.scaleToZeroConfig = scaleToZeroConfig;
 	}
 
-	public void forwardRequest(NioSocketChannel ctx) {
-		String sourcePodIp = ctx.remoteAddress().getAddress().getHostAddress();
+	/**
+	 * Takes source and destination, and return the endpoint to add to proxy chain
+	 */
+	public InetSocketAddress forwardRequest(InetSocketAddress localAddress, InetSocketAddress remoteAddress) {
+		Pod sourcePod = getSourcePod(remoteAddress.getAddress().getHostAddress());
+		log.info("forwarding request from {}", sourcePod.getMetadata().getName());
 
-		Optional<Pod> podByIp = podRepository.findPodByIp(sourcePodIp);
-		if (podByIp.isEmpty()) {
-			log.warn("the forwarder proxy received a request from an host ({}) that it couldn't identify, dropping request", sourcePodIp);
-			ctx.pipeline().close();
-			return;
+		io.fabric8.kubernetes.api.model.Service targetedService = getTargetedScalingServiceByPod(sourcePod, localAddress);
+		String serviceNamespaceAndName = getResourceNamespaceAndName(targetedService);
+		log.debug("checking if workload behind {} [{}] have to upscale", serviceNamespaceAndName, targetedService.getSpec().getClusterIP());
+
+		Map<String, String> applicationsIdentifierLabels = getApplicationsIdentifierLabels(targetedService);
+
+		Deployment deployment = deploymentRepository.findOneByLabels(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels)
+				.orElseThrow(() -> new InterruptedProxyForwardException(String.format("the forwarder proxy could not identify the deployment attached to %s, dropping request", serviceNamespaceAndName)));
+		String deploymentNamespaceAndName = getResourceNamespaceAndName(deployment);
+
+		log.debug("checking if {} needs to scale", deploymentNamespaceAndName);
+		if (!IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, deployment))) {
+			throw new InterruptedProxyForwardException(String.format("%s, does not have scaling label, won't do any action on it", deploymentNamespaceAndName));
 		}
 
-		Pod sourcePod = podByIp.get();
-		log.info("forwarding request from {} [{}]", sourcePod.getMetadata().getName(), sourcePodIp);
+		// scale up
+		if (deployment.getSpec().getReplicas() == 0) {
+			deploymentRepository.scale(deployment, 1, true); // TODO : not always scale to 1
+		}
+		log.debug("{} have at least one replica", deploymentNamespaceAndName);
 
+		// release endpoint slice
+		endpointSliceHijackerService.releaseHijacked(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels);
+
+		// balance on 1st pod
+		Pod targetPod = waitForMatchingPodInReadyState(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels, 60);
+
+		return new InetSocketAddress(targetPod.getStatus().getPodIP(), localAddress.getPort());
+	}
+
+	private Pod getSourcePod(String sourcePodIp) {
+		Optional<Pod> podByIp = podRepository.findPodByIp(sourcePodIp);
+		return podByIp.orElseThrow(
+				() -> new InterruptedProxyForwardException(String.format("the forwarder proxy received a request from an host (%s) that it couldn't identify, dropping request", sourcePodIp))
+		);
+	}
+
+	private io.fabric8.kubernetes.api.model.Service getTargetedScalingServiceByPod(Pod sourcePod, InetSocketAddress localAddress) {
 		boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals("istio-proxy"));
 		//boolean sourcePodHasIstio = true; // TODO: check if istio is required
 		String containerNameForTcpTable = sourcePodHasIstio ? "istio-proxy" : sourcePod.getSpec().getContainers().get(0).getName();
@@ -72,70 +105,53 @@ public class UpscalerTcpProxyService {
 		String tcpTableRawOutput = podRepository.exec(sourcePod, containerNameForTcpTable, "cat", "/proc/net/tcp");
 		List<TcpTableEntry> tcpTableEntries = TcpTableParser.parseTCPTable(tcpTableRawOutput);
 		log.trace("decoded entries : {}", tcpTableEntries);
-		List<io.fabric8.kubernetes.api.model.Service> targetedServices = tcpTableEntries.stream()
+
+		Optional<io.fabric8.kubernetes.api.model.Service> targetedServiceOpt = tcpTableEntries.stream()
+				// filter non desired entries
 				.filter(t -> t.getState().equals("1"))   // TCP_ESTABLISHED
 				.filter(t -> !t.getUid().equals("1337")) // from our app, not from envoy !
+				// more filtering : which may target our service
+				.filter(t -> t.getRemotePort().equals(String.valueOf(localAddress.getPort())))
+				// order sources, last (newest) calls firsts
 				.map(t -> t.getRemoteAddress())
+				.sorted(Collections.reverseOrder())
 				.distinct()
+				// get source service
 				.map(ip -> serviceRepository.findServiceByIp(ip))
 				.filter(Optional::isPresent)
 				.map(opt -> opt.get())
 				.filter(service -> IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
-				.collect(toList());
+				.findFirst();
 
-		log.debug("list of service which may require scale : {}", targetedServices.stream().map(service -> getResourceNamespaceAndName(service)).collect(toList()));
-		for (io.fabric8.kubernetes.api.model.Service service : targetedServices) {
-			String serviceNamespaceAndName = getResourceNamespaceAndName(service);
-			log.debug("checking if workload behind service {} [{}] have to upscale", serviceNamespaceAndName, service.getSpec().getClusterIP());
-
-			Set<String> serviceToDeploymentMatchingLabels = Set.of("app.kubernetes.io/name", "app.kubernetes.io/instance"); // TODO : pass as constant
-			Map<String, String> appIdentifierLabels = new HashMap<>();
-			for (String serviceToDeploymentMatchingLabel : serviceToDeploymentMatchingLabels) {
-				String serviceLabelValue = getLabelValue(serviceToDeploymentMatchingLabel, service);
-				if (StringUtils.isEmpty(serviceLabelValue)) {
-					log.warn("missing label on service {} : {}", serviceNamespaceAndName, serviceToDeploymentMatchingLabel);
-				}
-				appIdentifierLabels.put(serviceToDeploymentMatchingLabel, serviceLabelValue);
-			}
-
-			Optional<Deployment> deploymentAttachedToService = deploymentRepository.findOneByLabels(service.getMetadata().getNamespace(), appIdentifierLabels);
-			if (deploymentAttachedToService.isEmpty()) {
-				log.warn("the forwarder proxy could not identify the deployment attached to the service : {}, dropping request", serviceNamespaceAndName);
-				ctx.pipeline().close();
-				return;
-			}
-
-			Deployment deployment = deploymentAttachedToService.get();
-			String deploymentNamespaceAndName = getResourceNamespaceAndName(deployment);
-			log.debug("will see if the deployment {} needs to scale", deploymentNamespaceAndName);
-
-			if (!IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, deployment))) {
-				log.warn("the deployment {}, does not have scaling label, won't do any action on it", deploymentNamespaceAndName);
-				ctx.pipeline().close();
-				return;
-			}
-
-			// wait for replica
-			if (deployment.getSpec().getReplicas() == 0) {
-				// TODO : not always scale to 1
-				deploymentRepository.scale(deployment, 1, true);
-			}
-			log.debug("Deployment {} have at least one available replica", deploymentNamespaceAndName);
-
-			// release endpoint slice
-			EndpointSlice endpointSlice = endpointSliceRepository.findOneByLabels(service.getMetadata().getNamespace(), appIdentifierLabels).get();
-			endpointSliceHijackerService.releaseHijacked(endpointSlice);
-
-			// balance on 1st pod
-			Pod targetPod = podRepository.findAllWithLabels(service.getMetadata().getNamespace(), appIdentifierLabels).get(0);
-			String targetPodNameAndNamespace = getResourceNamespaceAndName(targetPod);
-			log.debug("waiting for pod {} to be READY", targetPodNameAndNamespace);
-			targetPod = podRepository.waitUntilPodIsReady(targetPod, 60);
-			log.debug("pod {} is ready", targetPodNameAndNamespace);
-
-			// TODO : balance on this pod ? and if there is others services in the loop ?
-			InetSocketAddress clientRecipient = new InetSocketAddress(targetPod.getStatus().getPodIP(), ctx.localAddress().getPort());
-			ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
-		}
+		return targetedServiceOpt.orElseThrow(
+				() -> new InterruptedProxyForwardException("could not detected the service at the source of the request, aborting")
+		);
 	}
+
+	private Pod waitForMatchingPodInReadyState(String namespace, Map<String, String> applicationsIdentifierLabels, int timeoutInSeconds) {
+		List<Pod> targetPods = podRepository.findAllWithLabels(namespace, applicationsIdentifierLabels);
+		if (targetPods.isEmpty()) {
+			throw new InterruptedProxyForwardException(String.format("did not find the pods in namespace %s, with labels %s, can't forward request", namespace, applicationsIdentifierLabels));
+		}
+
+		Pod targetPod = targetPods.get(0);
+		String targetPodNameAndNamespace = getResourceNamespaceAndName(targetPod);
+		log.debug("waiting for pod {} to be READY", targetPodNameAndNamespace);
+		targetPod = podRepository.waitUntilPodIsReady(targetPod, timeoutInSeconds);
+		log.debug("pod {} is ready", targetPodNameAndNamespace);
+		return targetPod;
+	}
+
+	private Map<String, String> getApplicationsIdentifierLabels(HasMetadata hasMetadata) {
+		Map<String, String> appIdentifierLabels = new HashMap<>();
+		for (String applicationIdentifierLabel : scaleToZeroConfig.getApplicationIdentifierLabels()) {
+			String sourceLabelValue = getLabelValue(applicationIdentifierLabel, hasMetadata);
+			if (isEmpty(sourceLabelValue)) {
+				throw new InterruptedProxyForwardException(String.format("missing app identifier label on source %s : %s, aborting", getResourceNamespaceAndName(hasMetadata), applicationIdentifierLabel));
+			}
+			appIdentifierLabels.put(applicationIdentifierLabel, sourceLabelValue);
+		}
+		return appIdentifierLabels;
+	}
+
 }

@@ -104,14 +104,14 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8082
-    targetPort: 8082
+  - port: 15099
+    targetPort: 15099
     protocol: TCP
     name: http
   - name: tcp-debug
-    port: 8083
+    port: 15098
     protocol: TCP
-    targetPort: 8083
+    targetPort: 15098
   - name: tcp-handler
     port: 8080
     protocol: TCP
@@ -163,16 +163,16 @@ spec:
           imagePullPolicy: Never
           ports:
             - name: http
-              containerPort: 8082
+              containerPort: 15099
               protocol: TCP
             - name: tcp-debug
-              containerPort: 8083
+              containerPort: 15098
             - name: tcp-handler
               containerPort: 8080
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8082
+              port: 15099
             initialDelaySeconds: 3
             periodSeconds: 10
             timeoutSeconds: 1
@@ -180,7 +180,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8082
+              port: 15099
             initialDelaySeconds: 3
             periodSeconds: 10
             timeoutSeconds: 1
@@ -195,7 +195,7 @@ spec:
           - name: EXTENSION_EXPOSER_ENABLED
             value: "true"
           - name: JAVA_TOOL_OPTIONS
-            value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8083,suspend=n"
+            value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=15098,suspend=n"
           - name: LOGGING_LEVEL_IO_NEO9_SCALER
             value: "TRACE"
           - name: SPRING_PROFILES_ACTIVE

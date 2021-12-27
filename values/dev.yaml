@@ -4,7 +4,7 @@ image:
 
 pod:
   extraEnvMap:
-    JAVA_TOOL_OPTIONS: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8083,suspend=n"
+    JAVA_TOOL_OPTIONS: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=15098,suspend=n"
     SPRING_PROFILES_ACTIVE: dev
     EXTENSION_EXPOSER_ENABLED: true
     EXTENSION_EXPOSER_DOMAIN: neokube.neo9.pro
@@ -16,13 +16,9 @@ healthCheck:
 service:
   additionalPorts:
     - name: tcp-debug
-      port: 8083
+      port: 15098
       protocol: TCP
-      targetPort: 8083
-    - name: tcp-handler
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
+      targetPort: 15098
 
 # An ingress is not required
 # It's here for remote development purpose only.

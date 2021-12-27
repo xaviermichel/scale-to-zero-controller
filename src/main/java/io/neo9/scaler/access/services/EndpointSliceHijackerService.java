@@ -38,6 +38,15 @@ public class EndpointSliceHijackerService {
 		this.serviceRepository = serviceRepository;
 	}
 
+	public void releaseHijacked(String namespace, Map<String, String> applicationsIdentifierLabels) {
+		Optional<EndpointSlice> endpointSliceOpt = endpointSliceRepository.findOneByLabels(namespace, applicationsIdentifierLabels);
+		if (endpointSliceOpt.isEmpty()) {
+			log.warn("did not find the endpointslice in namespace {}, with labels {}, can't release hijacking", namespace, applicationsIdentifierLabels);
+			return;
+		}
+		releaseHijacked(endpointSliceOpt.get());
+	}
+
 	public void releaseHijacked(EndpointSlice appEndpointSlice) {
 		if (! ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE.equals(getLabelValue(ENDPOINT_SLICE_MANAGED_BY_KEY, appEndpointSlice))) {
 			log.warn("Cannot release an non hijacked endpoint : {}", getResourceNamespaceAndName(appEndpointSlice));
@@ -119,4 +128,5 @@ public class EndpointSliceHijackerService {
 				.forEach(appEndpointSlice -> hijack(appEndpointSlice));
 		log.info("controller endpointslice changed, end of listeners update");
 	}
+
 }
