@@ -8,7 +8,7 @@ CLUSTER_VERSION=v1.21.3-k3s1
 
 
 start-k3s-for-test:
-	k3d cluster create $(CLUSTER_NAME) --image rancher/k3s:$(CLUSTER_VERSION)
+	k3d cluster create $(CLUSTER_NAME) --image rancher/k3s:$(CLUSTER_VERSION) --k3s-arg "--disable=traefik@server:0"
 	k3d kubeconfig merge $(CLUSTER_NAME)
 
 stop-k3s-for-test:
@@ -31,4 +31,4 @@ start-controller:
 	if [ ! -z "$(CLUSTER_KUBE_CONTEXT)" ]; then kubeContextArgs="--context=$(CLUSTER_KUBE_CONTEXT)"; fi
 	kubectl ${kubeContextArgs} apply -f controller-deployment/
 
-full-local-integration-tests-run: start-k3s-for-test run-integration-tests stop-k3s-for-test
+full-local-integration-tests-run: setup-k3s-for-test start-controller run-integration-tests stop-k3s-for-test

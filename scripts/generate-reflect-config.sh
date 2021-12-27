@@ -31,7 +31,6 @@ for jarGroupArtefactVersion in \
       io.fabric8:kubernetes-model-common:${fabric8Version}            \
       io.fabric8:kubernetes-model-core:${fabric8Version}              \
       io.fabric8:kubernetes-model-networking:${fabric8Version}        \
-      io.fabric8:kubernetes-model-apiextensions:${fabric8Version}     \
       io.fabric8:kubernetes-client:${fabric8Version}                  \
     ; do
 
@@ -67,16 +66,7 @@ for jarGroupArtefactVersion in \
 done
 
 cat <<EOF >> $targetFile
-  {"name": "io.neo9.ingress.access.config.AdditionalWatchersConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.config.WatchIngressAnnotationsConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.config.UpdateIstioIngressSidecarConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.config.ExposerConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.customresources.VisitorGroup", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.customresources.spec.V1VisitorGroupSpec", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.customresources.spec.V1VisitorGroupSpecSources", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.customresources.external.istio.Sidecar", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.customresources.external.istio.spec.SidecarSpec", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.ingress.access.customresources.external.istio.spec.EgressSpec", "allDeclaredMethods": true, "allPublicConstructors": true}
+  {"name": "io.neo9.ingress.access.config.ScaleToZeroConfig", "allDeclaredMethods": true, "allPublicConstructors": true}
 ]
 EOF
 

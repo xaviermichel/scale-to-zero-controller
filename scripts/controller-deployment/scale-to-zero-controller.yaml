@@ -112,10 +112,6 @@ spec:
     port: 15098
     protocol: TCP
     targetPort: 15098
-  - name: tcp-handler
-    port: 8080
-    protocol: TCP
-    targetPort: 8080
   selector:
     app.kubernetes.io/name: n9-api
     app.kubernetes.io/instance: scale-to-zero-controller
@@ -167,8 +163,6 @@ spec:
               protocol: TCP
             - name: tcp-debug
               containerPort: 15098
-            - name: tcp-handler
-              containerPort: 8080
           livenessProbe:
             httpGet:
               path: /actuator/health
