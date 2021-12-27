@@ -31,6 +31,8 @@ for jarGroupArtefactVersion in \
       io.fabric8:kubernetes-model-common:${fabric8Version}            \
       io.fabric8:kubernetes-model-core:${fabric8Version}              \
       io.fabric8:kubernetes-model-networking:${fabric8Version}        \
+      io.fabric8:kubernetes-model-discovery:${fabric8Version}         \
+      io.fabric8:kubernetes-model-apps:${fabric8Version}              \
       io.fabric8:kubernetes-client:${fabric8Version}                  \
     ; do
 
