@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '2.5.7'
+	id 'org.springframework.boot' version '2.6.2'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 	id "org.sonarqube" version "3.3"
 	id 'pl.allegro.tech.build.axion-release' version '1.13.6'
@@ -21,9 +21,9 @@ repositories {
 }
 
 ext {
-	javaOperatorVersion = '1.9.11'
+	javaOperatorVersion = '1.10.1'
 	javaOperatorStarterVersion = '1.8.4'
-	bouncycastleVersion = '1.69'
+	bouncycastleVersion = '1.70'
 
 	buildNativeImage = false //! "false".equalsIgnoreCase(System.getenv('NATIVE_IMAGE'))
 }
