@@ -84,6 +84,8 @@ public class PodRepository {
 		}
 		catch (InterruptedException e) {
 			log.error("Failed to exec command", e);
+			// Restore interrupted state
+			Thread.currentThread().interrupt();
 		}
 		if (!latchTerminationStatus) {
 			log.warn("execution timeout");

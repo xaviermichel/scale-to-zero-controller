@@ -63,6 +63,7 @@ public class EndpointSliceController implements ReconnectableWatcher {
 				case MODIFIED:
 					log.info("update event detected for endpointSlice : {}", endpointNamespaceAndName);
 					endpointSliceHijackingService.reconcileEndpointSliceWithNewControllerEndpointSlice();
+					break;
 				default:
 					// do nothing on deletion
 					break;

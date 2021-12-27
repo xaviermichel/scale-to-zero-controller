@@ -18,4 +18,8 @@ public class Labels {
 	public static final String ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE = "scale-to-zero-controller";
 
 	public static final String ENDPOINT_SLICE_MANAGED_BY_CLOUD_PROVIDER_CONTROLLER_VALUE = "endpointslice-controller.k8s.io";
+
+	public static final String KUBERNETES_LABEL_INSTANCE_KEY = "app.kubernetes.io/instance";
+
+	public static final String KUBERNETES_LABEL_INSTANCE_CONTROLLER_VALUE = "scale-to-zero-controller";
 }

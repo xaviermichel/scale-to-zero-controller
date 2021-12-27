@@ -46,10 +46,10 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 			this.clientChannel = clientCtx.channel();
 		}
 		logger.trace("channel id {}, readableBytes:{}", clientChannel.id().toString(), msg.readableBytes());
-		proxy(clientCtx, msg);
+		proxy(msg);
 	}
 
-	private void proxy(ChannelHandlerContext clientCtx, ByteBuf msg) {
+	private void proxy(ByteBuf msg) {
 		logger.trace("channel id {}, pc is null {}, {}", clientChannel.id().toString(), (remoteChannel == null), msg.readableBytes());
 		if (remoteChannel == null && proxyClient == null) {
 			proxyClient = new Bootstrap();

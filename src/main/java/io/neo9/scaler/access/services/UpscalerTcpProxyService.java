@@ -31,7 +31,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 @Slf4j
 public class UpscalerTcpProxyService {
 
-	private final String ISTIO_SIDECAR_CONTAINER_NAME = "istio-proxy";
+	private static final String ISTIO_SIDECAR_CONTAINER_NAME = "istio-proxy";
 
 	private final PodRepository podRepository;
 
@@ -116,7 +116,7 @@ public class UpscalerTcpProxyService {
 				// get source service
 				.map(ip -> serviceRepository.findServiceByIp(ip))
 				.filter(Optional::isPresent)
-				.map(opt -> opt.get())
+				.map(Optional::get)
 				.filter(service -> IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
 				.findFirst();
 

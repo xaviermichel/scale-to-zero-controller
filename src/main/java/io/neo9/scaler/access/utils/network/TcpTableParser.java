@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class TcpTableParser {
 
 	// Pattern to parse /proc/net/tcp
-	final private Pattern fieldsPattern = Pattern.compile("^\\s*(\\d+): ([0-9A-F]+):(....) ([0-9A-F]+):(....) (..) (?:\\S+ ){3}\\s*(\\d+)\\s+\\d+\\s+(\\d+).*$");
+	private static final Pattern fieldsPattern = Pattern.compile("^\\s*(\\d+): ([0-9A-F]+):(....) ([0-9A-F]+):(....) (..) (?:\\S+ ){3}\\s*(\\d+)\\s+\\d+\\s+(\\d+).*$");
 
 	public static List<TcpTableEntry> parseTCPTable(String tcpTableOutput) {
 		List<TcpTableEntry> netstatEntries = new ArrayList<>();

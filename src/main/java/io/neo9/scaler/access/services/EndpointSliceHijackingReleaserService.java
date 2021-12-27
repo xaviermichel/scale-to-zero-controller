@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.neo9.scaler.access.repositories.EndpointSliceRepository;
-import io.neo9.scaler.access.repositories.ServiceRepository;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
@@ -22,11 +21,8 @@ public class EndpointSliceHijackingReleaserService {
 
 	private final EndpointSliceRepository endpointSliceRepository;
 
-	private final ServiceRepository serviceRepository;
-
-	public EndpointSliceHijackingReleaserService(EndpointSliceRepository endpointSliceRepository, ServiceRepository serviceRepository) {
+	public EndpointSliceHijackingReleaserService(EndpointSliceRepository endpointSliceRepository) {
 		this.endpointSliceRepository = endpointSliceRepository;
-		this.serviceRepository = serviceRepository;
 	}
 
 	public void releaseHijacked(String namespace, Map<String, String> applicationIdentifierLabels) {

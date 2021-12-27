@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import static io.neo9.scaler.access.config.Labels.KUBERNETES_LABEL_INSTANCE_CONTROLLER_VALUE;
+import static io.neo9.scaler.access.config.Labels.KUBERNETES_LABEL_INSTANCE_KEY;
+
 @Component
 @Slf4j
 public class EndpointSliceRepository {
@@ -23,7 +26,7 @@ public class EndpointSliceRepository {
 	public Optional<EndpointSlice> findControllerEndpointSlice() {
 		return kubernetesClient.discovery().v1beta1().endpointSlices()
 				.inAnyNamespace()
-				.withLabel("app.kubernetes.io/instance", "scale-to-zero-controller").list().getItems() // TODO : pass as constant
+				.withLabel(KUBERNETES_LABEL_INSTANCE_KEY, KUBERNETES_LABEL_INSTANCE_CONTROLLER_VALUE).list().getItems()
 				.stream()
 				.findFirst();
 	}
