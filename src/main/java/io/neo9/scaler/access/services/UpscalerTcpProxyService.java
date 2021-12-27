@@ -77,7 +77,7 @@ public class UpscalerTcpProxyService {
 
 		// scale up
 		if (deployment.getSpec().getReplicas() == 0) {
-			deploymentRepository.scale(deployment, 1, true); // TODO : not always scale to 1
+			deploymentRepository.scale(deployment, 2, true); // TODO : not always scale to 2
 		}
 		log.debug("{} have at least one replica", deploymentNamespaceAndName);
 
