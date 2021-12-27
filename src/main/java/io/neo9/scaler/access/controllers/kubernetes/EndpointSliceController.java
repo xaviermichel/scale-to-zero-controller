@@ -6,7 +6,7 @@ import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher.Action;
-import io.neo9.scaler.access.services.EndpointSliceHijackerService;
+import io.neo9.scaler.access.services.EndpointSliceHijackingService;
 import io.neo9.scaler.access.utils.retry.RetryContext;
 import io.neo9.scaler.access.utils.retry.RetryableWatcher;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class EndpointSliceController implements ReconnectableWatcher {
 
 	private Watch controllerEndpointSliceWatchOnLabel;
 
-	public EndpointSliceController(KubernetesClient kubernetesClient, EndpointSliceHijackerService endpointSliceHijackerService) {
+	public EndpointSliceController(KubernetesClient kubernetesClient, EndpointSliceHijackingService endpointSliceHijackingService) {
 		this.kubernetesClient = kubernetesClient;
 		this.onScalableEndpointSliceEventReceived = (action, endpointSlice) -> {
 			String endpointNamespaceAndName = getResourceNamespaceAndName(endpointSlice);
@@ -45,7 +45,7 @@ public class EndpointSliceController implements ReconnectableWatcher {
 				case ADDED:
 				case MODIFIED:
 					log.info("update event detected for endpointSlice : {}", endpointNamespaceAndName);
-					endpointSliceHijackerService.hijack(endpointSlice);
+					endpointSliceHijackingService.hijack(endpointSlice);
 					break;
 				default:
 					// do nothing on deletion
@@ -62,7 +62,7 @@ public class EndpointSliceController implements ReconnectableWatcher {
 				case ADDED:
 				case MODIFIED:
 					log.info("update event detected for endpointSlice : {}", endpointNamespaceAndName);
-					endpointSliceHijackerService.reconcileEndpointSliceWithNewControllerEndpointSlice();
+					endpointSliceHijackingService.reconcileEndpointSliceWithNewControllerEndpointSlice();
 				default:
 					// do nothing on deletion
 					break;

@@ -1,6 +1,8 @@
 package io.neo9.scaler.access.controllers.tcp;
 
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
@@ -19,21 +21,26 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
-@Configuration
 @Slf4j
-public class RequestHandler {
+@Component
+public class DynamicRequestHandler {
 
 	private final UpscalerTcpProxyService upscalerTcpProxyService;
 
-	public RequestHandler(UpscalerTcpProxyService upscalerTcpProxyService) {
+	private final Map<Integer, ChannelFuture> startedTcpHandlers;
+
+	public DynamicRequestHandler(UpscalerTcpProxyService upscalerTcpProxyService) {
+		this.startedTcpHandlers = new HashMap<>();
 		this.upscalerTcpProxyService = upscalerTcpProxyService;
 	}
 
-	@Bean
-	public ChannelFuture tcpServer() {
+	public void startTcpServer(Integer listenPort) {
+		if (startedTcpHandlers.containsKey(listenPort)) {
+			return;
+		}
+
 		EventLoopGroup bossGroup = new NioEventLoopGroup();
 		EventLoopGroup workerGroup = new NioEventLoopGroup();
 
@@ -70,8 +77,10 @@ public class RequestHandler {
 					}
 				});
 
-		log.info("listen at {}:{}", "0.0.0.0", 8080);
-		return tcpBootstrap.bind("0.0.0.0", 8080);
+
+		ChannelFuture bind = tcpBootstrap.bind("0.0.0.0", listenPort);
+		log.info("started tcp server, listening on {}:{}", "0.0.0.0", listenPort);
+		startedTcpHandlers.put(listenPort, bind);
 	}
 
 }

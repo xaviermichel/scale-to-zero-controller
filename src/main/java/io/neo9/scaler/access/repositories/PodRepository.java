@@ -48,35 +48,35 @@ public class PodRepository {
 	}
 
 	public String exec(Pod pod, String containerId, String... command) {
-			CountDownLatch execLatch = new CountDownLatch(1);
+		CountDownLatch execLatch = new CountDownLatch(1);
 
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			ByteArrayOutputStream error = new ByteArrayOutputStream();
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-			ExecWatch execWatch = kubernetesClient.pods()
-					.inNamespace(pod.getMetadata().getNamespace()).withName(pod.getMetadata().getName())
-					.inContainer(containerId)
-					.writingOutput(out)
-					.writingError(error)
-					.usingListener(new ExecListener() {
-						@Override
-						public void onOpen(Response response) {
-							log.trace("shell onOpen");
-						}
+		ExecWatch execWatch = kubernetesClient.pods()
+				.inNamespace(pod.getMetadata().getNamespace()).withName(pod.getMetadata().getName())
+				.inContainer(containerId)
+				.writingOutput(out)
+				.writingError(error)
+				.usingListener(new ExecListener() {
+					@Override
+					public void onOpen(Response response) {
+						log.trace("shell onOpen");
+					}
 
-						@Override
-						public void onFailure(Throwable throwable, Response response) {
-							log.warn("could not exec command on pod");
-							execLatch.countDown();
-						}
+					@Override
+					public void onFailure(Throwable throwable, Response response) {
+						log.warn("could not exec command on pod");
+						execLatch.countDown();
+					}
 
-						@Override
-						public void onClose(int i, String s) {
-							log.trace("shell onClose");
-							execLatch.countDown();
-						}
-					})
-					.exec(command);
+					@Override
+					public void onClose(int i, String s) {
+						log.trace("shell onClose");
+						execLatch.countDown();
+					}
+				})
+				.exec(command);
 
 		boolean latchTerminationStatus = false;
 		try {
@@ -86,7 +86,7 @@ public class PodRepository {
 			log.error("Failed to exec command", e);
 		}
 		if (!latchTerminationStatus) {
-				log.warn("execution timeout");
+			log.warn("execution timeout");
 		}
 		log.trace("exec output: {} ", out);
 		execWatch.close();

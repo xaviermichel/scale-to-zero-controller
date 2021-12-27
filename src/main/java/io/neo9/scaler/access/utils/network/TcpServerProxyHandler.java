@@ -26,6 +26,8 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 
 	private static InternalLogger logger = InternalLoggerFactory.getInstance(TcpServerProxyHandler.class);
 
+	private final InetSocketAddress clientRecipient;
+
 	private Channel clientChannel;
 
 	private Channel remoteChannel;
@@ -33,8 +35,6 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 	private Bootstrap proxyClient;
 
 	private List<ByteBuf> clientBuffs;
-
-	private final InetSocketAddress clientRecipient;
 
 	public TcpServerProxyHandler(InetSocketAddress clientRecipient) {
 		this.clientRecipient = clientRecipient;
@@ -86,7 +86,7 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 												}
 
 												@Override
-												public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)  {
+												public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 													logger.error("Error while proxyfying client", cause);
 													proxyChannelClose();
 												}
@@ -173,7 +173,7 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 			}
 		}
 		catch (Exception e) {
-            logger.error("close channel error", e);
+			logger.error("close channel error", e);
 		}
 	}
 

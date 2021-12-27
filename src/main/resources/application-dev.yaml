@@ -1,6 +1,6 @@
 logging:
   level:
     io.neo9.scaler: TRACE
-    io.neo9.scaler.services: DEBUG
+    io.neo9.scaler.repositories: DEBUG
     io.neo9.scaler.utils.network: DEBUG
 

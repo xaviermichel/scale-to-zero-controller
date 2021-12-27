@@ -13,7 +13,6 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
-import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
 import io.neo9.scaler.access.utils.network.TcpTableEntry;
@@ -32,24 +31,23 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 @Slf4j
 public class UpscalerTcpProxyService {
 
+	private final String ISTIO_SIDECAR_CONTAINER_NAME = "istio-proxy";
+
 	private final PodRepository podRepository;
 
 	private final ServiceRepository serviceRepository;
 
 	private final DeploymentRepository deploymentRepository;
 
-	private final EndpointSliceRepository endpointSliceRepository;
-
-	private final EndpointSliceHijackerService endpointSliceHijackerService;
+	private final EndpointSliceHijackingReleaserService endpointSliceHijackingReleaserService;
 
 	private final ScaleToZeroConfig scaleToZeroConfig;
 
-	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, EndpointSliceRepository endpointSliceRepository, EndpointSliceHijackerService endpointSliceHijackerService, ScaleToZeroConfig scaleToZeroConfig) {
+	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, EndpointSliceHijackingReleaserService endpointSliceHijackingReleaserService, ScaleToZeroConfig scaleToZeroConfig) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
 		this.deploymentRepository = deploymentRepository;
-		this.endpointSliceRepository = endpointSliceRepository;
-		this.endpointSliceHijackerService = endpointSliceHijackerService;
+		this.endpointSliceHijackingReleaserService = endpointSliceHijackingReleaserService;
 		this.scaleToZeroConfig = scaleToZeroConfig;
 	}
 
@@ -82,7 +80,7 @@ public class UpscalerTcpProxyService {
 		log.debug("{} have at least one replica", deploymentNamespaceAndName);
 
 		// release endpoint slice
-		endpointSliceHijackerService.releaseHijacked(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels);
+		endpointSliceHijackingReleaserService.releaseHijacked(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels);
 
 		// balance on 1st pod
 		Pod targetPod = waitForMatchingPodInReadyState(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels, 60);
@@ -98,9 +96,8 @@ public class UpscalerTcpProxyService {
 	}
 
 	private io.fabric8.kubernetes.api.model.Service getTargetedScalingServiceByPod(Pod sourcePod, InetSocketAddress localAddress) {
-		boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals("istio-proxy"));
-		//boolean sourcePodHasIstio = true; // TODO: check if istio is required
-		String containerNameForTcpTable = sourcePodHasIstio ? "istio-proxy" : sourcePod.getSpec().getContainers().get(0).getName();
+		boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals(ISTIO_SIDECAR_CONTAINER_NAME));
+		String containerNameForTcpTable = sourcePodHasIstio ? ISTIO_SIDECAR_CONTAINER_NAME : sourcePod.getSpec().getContainers().get(0).getName();
 
 		String tcpTableRawOutput = podRepository.exec(sourcePod, containerNameForTcpTable, "cat", "/proc/net/tcp");
 		List<TcpTableEntry> tcpTableEntries = TcpTableParser.parseTCPTable(tcpTableRawOutput);
@@ -136,9 +133,9 @@ public class UpscalerTcpProxyService {
 
 		Pod targetPod = targetPods.get(0);
 		String targetPodNameAndNamespace = getResourceNamespaceAndName(targetPod);
-		log.debug("waiting for pod {} to be READY", targetPodNameAndNamespace);
+		log.debug("waiting for {} to be READY", targetPodNameAndNamespace);
 		targetPod = podRepository.waitUntilPodIsReady(targetPod, timeoutInSeconds);
-		log.debug("pod {} is ready", targetPodNameAndNamespace);
+		log.debug("{} is ready", targetPodNameAndNamespace);
 		return targetPod;
 	}
 
