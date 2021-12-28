@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -99,7 +100,7 @@ public class UpscalerTcpProxyService {
 		boolean sourcePodHasIstio = sourcePod.getSpec().getContainers().stream().anyMatch(c -> c.getName().equals(ISTIO_SIDECAR_CONTAINER_NAME));
 		String containerNameForTcpTable = sourcePodHasIstio ? ISTIO_SIDECAR_CONTAINER_NAME : sourcePod.getSpec().getContainers().get(0).getName();
 
-		String tcpTableRawOutput = podRepository.exec(sourcePod, containerNameForTcpTable, "cat", "/proc/net/tcp");
+		String tcpTableRawOutput = podRepository.readFileFromPod(sourcePod, containerNameForTcpTable, "/proc/net/tcp");
 		List<TcpTableEntry> tcpTableEntries = TcpTableParser.parseTCPTable(tcpTableRawOutput);
 		log.trace("decoded entries : {}", tcpTableEntries);
 
@@ -126,7 +127,9 @@ public class UpscalerTcpProxyService {
 	}
 
 	private Pod waitForMatchingPodInReadyState(String namespace, Map<String, String> applicationsIdentifierLabels, int timeoutInSeconds) {
-		List<Pod> targetPods = podRepository.findAllWithLabels(namespace, applicationsIdentifierLabels);
+		List<Pod> targetPods = podRepository.findAllWithLabels(namespace, applicationsIdentifierLabels)
+				.stream().filter(pod -> isEmpty(pod.getMetadata().getDeletionTimestamp()))
+				.collect(Collectors.toList());
 		if (targetPods.isEmpty()) {
 			throw new InterruptedProxyForwardException(String.format("did not find the pods in namespace %s, with labels %s, can't forward request", namespace, applicationsIdentifierLabels));
 		}

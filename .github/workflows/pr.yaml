@@ -21,37 +21,18 @@ jobs:
     - name: Run tests
       run: ./gradlew test
     - name: Build container image
-      run: ./gradlew bootBuildImage
+      run: NATIVE_IMAGE=false ./gradlew bootBuildImage
     - name: Upload test image
       uses: ishworkh/docker-image-artifact-upload@v1
       with:
         image: "docker.io/neo9sas/scale-to-zero-controller:latest"
-
-  security-scan:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Download test image
-        uses: ishworkh/docker-image-artifact-download@v1
-        with:
-          image: "docker.io/neo9sas/scale-to-zero-controller:latest"
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'docker.io/neo9sas/scale-to-zero-controller:latest'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
 
   integration-tests:
     needs: [build]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [v1.19.12-k3s1, v1.20.8-k3s1, v1.21.2-k3s1, v1.22.1-rc1-k3s1]
+        k8s_version: [v1.20.14-k3s1, v1.21.8-k3s1, v1.22.5-k3s1]
     steps:
     - uses: actions/checkout@v2
     - name: Download test image
@@ -71,3 +52,71 @@ jobs:
         ./quick-integration-test.sh || testsFailed=1
         cd -
         exit ${testsFailed}
+
+  native-build:
+    needs: [integration-tests] # not really needed, but is a way to not duplicate build errors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Compile
+        run: ./gradlew build -x test
+      - name: Run tests
+        run: ./gradlew test
+      - name: Build container image
+        run: ./gradlew bootBuildImage
+      - name: Upload test image
+        uses: ishworkh/docker-image-artifact-upload@v1
+        with:
+          image: "docker.io/neo9sas/scale-to-zero-controller:latest"
+
+  native-integration-tests:
+    needs: [native-build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [v1.20.14-k3s1, v1.21.8-k3s1, v1.22.5-k3s1]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download test image
+        uses: ishworkh/docker-image-artifact-download@v1
+        with:
+          image: "docker.io/neo9sas/scale-to-zero-controller:latest"
+      - uses: debianmaster/actions-k3s@master
+        id: k3s
+        with:
+          version: ${{ matrix.k8s_version }}
+      - name: test on k3s
+        run: |
+          docker ps
+          cd scripts
+          make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
+          make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
+          ./quick-integration-test.sh || testsFailed=1
+          cd -
+          exit ${testsFailed}
+
+  security-scan:
+    needs: [native-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download test image
+        uses: ishworkh/docker-image-artifact-download@v1
+        with:
+          image: "docker.io/neo9sas/scale-to-zero-controller:latest"
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/neo9sas/scale-to-zero-controller:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

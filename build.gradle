@@ -44,6 +44,7 @@ dependencies {
 	implementation "io.javaoperatorsdk:operator-framework-spring-boot-starter:${javaOperatorStarterVersion}"
 	implementation "org.bouncycastle:bcprov-ext-jdk15on:${bouncycastleVersion}"
 	implementation "org.bouncycastle:bcpkix-jdk15on:${bouncycastleVersion}"
+	implementation "commons-codec:commons-codec"
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor "io.javaoperatorsdk:operator-framework:${javaOperatorVersion}"
