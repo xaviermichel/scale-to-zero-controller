@@ -58,7 +58,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32,10.0.0.0/8
+    nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32,127.0.0.0/8
   name: echoserver-deployment
 spec:
   rules:

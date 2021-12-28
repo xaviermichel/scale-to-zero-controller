@@ -1,20 +1,23 @@
 package io.neo9.scaler.access.repositories;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.ExecListener;
-import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Response;
 
 import org.springframework.stereotype.Component;
+
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 @Component
 @Slf4j
@@ -47,51 +50,17 @@ public class PodRepository {
 				.waitUntilReady(timeoutInSeconds, TimeUnit.SECONDS);
 	}
 
-	public String exec(Pod pod, String containerId, String... command) {
-		CountDownLatch execLatch = new CountDownLatch(1);
-
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		ByteArrayOutputStream error = new ByteArrayOutputStream();
-
-		ExecWatch execWatch = kubernetesClient.pods()
-				.inNamespace(pod.getMetadata().getNamespace()).withName(pod.getMetadata().getName())
+	public String readFileFromPod(Pod pod, String containerId, String path) {
+		try (InputStream is = kubernetesClient.pods()
+				.inNamespace(pod.getMetadata().getNamespace())
+				.withName(pod.getMetadata().getName())
 				.inContainer(containerId)
-				.writingOutput(out)
-				.writingError(error)
-				.usingListener(new ExecListener() {
-					@Override
-					public void onOpen(Response response) {
-						log.trace("shell onOpen");
-					}
-
-					@Override
-					public void onFailure(Throwable throwable, Response response) {
-						log.warn("could not exec command on pod");
-						execLatch.countDown();
-					}
-
-					@Override
-					public void onClose(int i, String s) {
-						log.trace("shell onClose");
-						execLatch.countDown();
-					}
-				})
-				.exec(command);
-
-		boolean latchTerminationStatus = false;
-		try {
-			latchTerminationStatus = execLatch.await(5, TimeUnit.SECONDS);
+				.file(path).read()) {
+			return new BufferedReader(new InputStreamReader(is)).lines().collect(Collectors.joining("\n"));
 		}
-		catch (InterruptedException e) {
-			log.error("Failed to exec command", e);
-			// Restore interrupted state
-			Thread.currentThread().interrupt();
+		catch (IOException e) {
+			log.error("Failed to read file {} in {}/{}", path, getResourceNamespaceAndName(pod), containerId);
 		}
-		if (!latchTerminationStatus) {
-			log.warn("execution timeout");
-		}
-		log.trace("exec output: {} ", out);
-		execWatch.close();
-		return out.toString();
+		return EMPTY;
 	}
 }
