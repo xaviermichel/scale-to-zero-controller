@@ -27,34 +27,8 @@ jobs:
       with:
         image: "docker.io/neo9sas/scale-to-zero-controller:latest"
 
-  integration-tests:
-    needs: [build]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        k8s_version: [v1.19.12-k3s1, v1.20.8-k3s1, v1.21.2-k3s1, v1.22.5+k3s1]
-    steps:
-    - uses: actions/checkout@v2
-    - name: Download test image
-      uses: ishworkh/docker-image-artifact-download@v1
-      with:
-        image: "docker.io/neo9sas/scale-to-zero-controller:latest"
-    - uses: debianmaster/actions-k3s@master
-      id: k3s
-      with:
-        version: ${{ matrix.k8s_version }}
-    - name: test on k3s
-      run: |
-        docker ps
-        cd scripts
-        make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
-        make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
-        ./quick-integration-test.sh || testsFailed=1
-        cd -
-        exit ${testsFailed}
-
   publish:
-    needs: [integration-tests]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
     - name: Download image
