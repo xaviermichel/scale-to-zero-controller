@@ -14,7 +14,7 @@ Compatibility
 -------------
 
 Requires Kubernetes >= 1.20.
-Tested on GKE and k3s, with nginx ingress controller.
+Tested on GKE and k3s, with nginx ingress controller (not required).
 
 
 Usage example
@@ -51,6 +51,8 @@ metadata:
 ```
 
 If you plan to use nginx as ingress source (not required, internal traffic is also handled), you must specify `nginx.ingress.kubernetes.io/service-upstream` to be sur that nginx will not bypass kubernetes services (in that case, the controller won't be able to determine the originally targeted service).
+For internal calls (as pods to other service), there is no configuration needed.
+
 ```
 apiVersion: networking.k8s.io/v1
 kind: Ingress
