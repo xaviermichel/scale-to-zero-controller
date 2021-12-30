@@ -4,9 +4,7 @@ set -x
 
 if [ ! -z "$1" ]; then
     kubeContextArgs="--context=$1"
-fi
-
-if [ "$CI" != "true" ] ; then
+elif [ "$CI" != "true" ] ; then
     kubeContextArgs="--context=k3d-scale-to-zero-controller-test"
 fi
 
@@ -59,11 +57,14 @@ for f in $(ls ../example-conf/); do
     kubectl ${kubeContextArgs} apply -f ../example-conf/$f
 done
 
+
 #
 # echoserver
 #
 
 waitForPodReady default echoserver-deployment
+checkDeploymentReplicaCount "default" "echoserver-deployment" "1"
+
 for i in $(seq 3); do # the test will be played multiple time
     checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-deployment.dev-xmichel.neokube.neo9.pro" "request_version"
 

@@ -51,6 +51,16 @@ jobs:
         make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
         ./quick-integration-test.sh || testsFailed=1
         cd -
+        echo "===\n===\n==="
+        kubectl -n scale-to-zero-controller logs deploy/scale-to-zero-controller-n9-api
+        echo "===\n===\n==="
+        kubectl -n ingress-nginx logs deploy/ingress-nginx-controller
+        echo "===\n===\n==="
+        kubectl -n scale-to-zero-controller get all
+        kubectl -n scale-to-zero-controller get endpointslice
+        echo "===\n===\n==="
+        kubectl -n default get all
+        kubectl -n default get endpointslice
         exit ${testsFailed}
 
   native-build:
@@ -100,6 +110,16 @@ jobs:
           make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
           ./quick-integration-test.sh || testsFailed=1
           cd -
+          echo "===\n===\n==="
+          kubectl -n scale-to-zero-controller logs deploy/scale-to-zero-controller-n9-api
+          echo "===\n===\n==="
+          kubectl -n ingress-nginx logs deploy/ingress-nginx-controller
+          echo "===\n===\n==="
+          kubectl -n scale-to-zero-controller get all
+          kubectl -n scale-to-zero-controller get endpointslice
+          echo "===\n===\n==="
+          kubectl -n default get all
+          kubectl -n default get endpointslice
           exit ${testsFailed}
 
   security-scan:

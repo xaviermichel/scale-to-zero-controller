@@ -41,4 +41,4 @@ clusterrole:
     verbs: ["watch", "get", "list", "update", "patch"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["get", "list", "update", "patch"]
+    verbs: ["watch", "get", "list", "update", "patch"]

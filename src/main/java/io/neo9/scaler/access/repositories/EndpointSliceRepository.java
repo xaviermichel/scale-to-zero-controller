@@ -31,12 +31,11 @@ public class EndpointSliceRepository {
 				.findFirst();
 	}
 
-	public Optional<EndpointSlice> findOneByLabels(String namespace, Map<String, String> filteringLabels) {
+	public List<EndpointSlice> findAllWithLabels(String namespace, Map<String, String> filteringLabels) {
 		return kubernetesClient.discovery().v1beta1().endpointSlices()
 				.inNamespace(namespace)
 				.withLabels(filteringLabels)
-				.list().getItems().stream()
-				.findFirst();
+				.list().getItems();
 	}
 
 	public List<EndpointSlice> findAllWithLabels(Map<String, String> filteringLabels) {

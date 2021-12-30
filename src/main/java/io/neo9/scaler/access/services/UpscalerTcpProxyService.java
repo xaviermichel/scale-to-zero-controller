@@ -2,7 +2,6 @@ package io.neo9.scaler.access.services;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,6 +12,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
+import io.neo9.scaler.access.exceptions.MissingLabelException;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
 import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelsValues;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -40,15 +41,12 @@ public class UpscalerTcpProxyService {
 
 	private final DeploymentRepository deploymentRepository;
 
-	private final EndpointSliceHijackingReleaserService endpointSliceHijackingReleaserService;
-
 	private final ScaleToZeroConfig scaleToZeroConfig;
 
-	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, EndpointSliceHijackingReleaserService endpointSliceHijackingReleaserService, ScaleToZeroConfig scaleToZeroConfig) {
+	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, ScaleToZeroConfig scaleToZeroConfig) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
 		this.deploymentRepository = deploymentRepository;
-		this.endpointSliceHijackingReleaserService = endpointSliceHijackingReleaserService;
 		this.scaleToZeroConfig = scaleToZeroConfig;
 	}
 
@@ -57,7 +55,7 @@ public class UpscalerTcpProxyService {
 	 */
 	public InetSocketAddress forwardRequest(InetSocketAddress localAddress, InetSocketAddress remoteAddress) {
 		Pod sourcePod = getSourcePod(remoteAddress.getAddress().getHostAddress());
-		log.info("forwarding request from {}", sourcePod.getMetadata().getName());
+		log.info("forwarding request from {}", getResourceNamespaceAndName(sourcePod));
 
 		io.fabric8.kubernetes.api.model.Service targetedService = getTargetedScalingServiceByPod(sourcePod, localAddress);
 		String serviceNamespaceAndName = getResourceNamespaceAndName(targetedService);
@@ -79,9 +77,6 @@ public class UpscalerTcpProxyService {
 			deploymentRepository.scale(deployment, 2, true); // TODO : not always scale to 2
 		}
 		log.debug("{} have at least one replica", deploymentNamespaceAndName);
-
-		// release endpoint slice
-		endpointSliceHijackingReleaserService.releaseHijacked(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels);
 
 		// balance on 1st pod
 		Pod targetPod = waitForMatchingPodInReadyState(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels, 60);
@@ -143,15 +138,12 @@ public class UpscalerTcpProxyService {
 	}
 
 	private Map<String, String> getApplicationsIdentifierLabels(HasMetadata hasMetadata) {
-		Map<String, String> appIdentifierLabels = new HashMap<>();
-		for (String applicationIdentifierLabel : scaleToZeroConfig.getApplicationIdentifierLabels()) {
-			String sourceLabelValue = getLabelValue(applicationIdentifierLabel, hasMetadata);
-			if (isEmpty(sourceLabelValue)) {
-				throw new InterruptedProxyForwardException(String.format("missing app identifier label on source %s : %s, aborting", getResourceNamespaceAndName(hasMetadata), applicationIdentifierLabel));
-			}
-			appIdentifierLabels.put(applicationIdentifierLabel, sourceLabelValue);
+		try {
+			return getLabelsValues(hasMetadata, scaleToZeroConfig.getApplicationIdentifierLabels());
 		}
-		return appIdentifierLabels;
+		catch (MissingLabelException e) {
+			throw new InterruptedProxyForwardException(String.format("missing app identifier label on source %s : %s, aborting", getResourceNamespaceAndName(hasMetadata), scaleToZeroConfig.getApplicationIdentifierLabels()), e);
+		}
 	}
 
 }
