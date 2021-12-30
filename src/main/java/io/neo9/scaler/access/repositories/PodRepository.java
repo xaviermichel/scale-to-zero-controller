@@ -44,6 +44,15 @@ public class PodRepository {
 				.list().getItems();
 	}
 
+	public List<Pod> findAllWithLabelsInPhase(String namespace, Map<String, String> filteringLabels, String phase) {
+		return kubernetesClient.pods()
+				.inNamespace(namespace)
+				.withLabels(filteringLabels)
+				.withField("status.phase", phase)
+				.list().getItems();
+	}
+
+
 	public Pod waitUntilPodIsReady(Pod pod, int timeoutInSeconds) {
 		return kubernetesClient.resource(pod)
 				.inNamespace(pod.getMetadata().getNamespace())
