@@ -6,4 +6,8 @@ public class InterruptedProxyForwardException extends RuntimeException {
 		super(message);
 	}
 
+	public InterruptedProxyForwardException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
 }

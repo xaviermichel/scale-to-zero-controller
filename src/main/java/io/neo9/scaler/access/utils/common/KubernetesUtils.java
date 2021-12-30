@@ -1,12 +1,16 @@
 package io.neo9.scaler.access.utils.common;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.neo9.scaler.access.exceptions.MissingLabelException;
 import lombok.experimental.UtilityClass;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.springframework.util.StringUtils.uncapitalize;
 
 @UtilityClass
@@ -47,4 +51,17 @@ public class KubernetesUtils {
 		String name = hasMetadata.getMetadata().getName();
 		return String.format("%s/%s/%s", uncapitalize(hasMetadata.getKind()), namespace, name);
 	}
+
+	public static Map<String, String> getLabelsValues(HasMetadata hasMetadata, Set<String> labelKeys) throws MissingLabelException {
+		Map<String, String> labels = new HashMap<>();
+		for (String labelKey : labelKeys) {
+			String sourceLabelValue = getLabelValue(labelKey, hasMetadata);
+			if (isEmpty(sourceLabelValue)) {
+				throw new MissingLabelException(labelKey, hasMetadata);
+			}
+			labels.put(labelKey, sourceLabelValue);
+		}
+		return labels;
+	}
+
 }

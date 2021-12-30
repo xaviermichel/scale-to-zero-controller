@@ -13,7 +13,9 @@ To achieve that, the controller takes control of the `endpointslice` associated 
 Compatibility
 -------------
 
-Tested on GKE. and k3s, with Kubernetes 1.20 and nginx ingress controller.
+Requires Kubernetes >= 1.20.
+Tested on GKE and k3s, with nginx ingress controller.
+
 
 Usage example
 -------------

@@ -5,10 +5,10 @@ kind: ServiceAccount
 metadata:
   name: scale-to-zero-controller-sa
   labels:
-    helm.sh/chart: n9-api-0.8.0
+    helm.sh/chart: n9-api-0.9.0
     app.kubernetes.io/name: n9-api
     app.kubernetes.io/instance: scale-to-zero-controller
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.9.0
     app.kubernetes.io/managed-by: Helm
     app: n9-api
 ---
@@ -18,10 +18,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: scale-to-zero-controller
   labels:
-    helm.sh/chart: n9-api-0.8.0
+    helm.sh/chart: n9-api-0.9.0
     app.kubernetes.io/name: n9-api
     app.kubernetes.io/instance: scale-to-zero-controller
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.9.0
     app.kubernetes.io/managed-by: Helm
     app: n9-api
 rules:
@@ -57,6 +57,7 @@ rules:
   resources:
   - deployments
   verbs:
+  - watch
   - get
   - list
   - update
@@ -69,10 +70,10 @@ metadata:
   name: scale-to-zero-controller-n9-api
   namespace: scale-to-zero-controller
   labels:
-    helm.sh/chart: n9-api-0.8.0
+    helm.sh/chart: n9-api-0.9.0
     app.kubernetes.io/name: n9-api
     app.kubernetes.io/instance: scale-to-zero-controller
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.9.0
     app.kubernetes.io/managed-by: Helm
     app: n9-api
 subjects:
@@ -92,10 +93,10 @@ metadata:
   name: scale-to-zero-controller-n9-api
   namespace: scale-to-zero-controller
   labels:
-    helm.sh/chart: n9-api-0.8.0
+    helm.sh/chart: n9-api-0.9.0
     app.kubernetes.io/name: n9-api
     app.kubernetes.io/instance: scale-to-zero-controller
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.9.0
     app.kubernetes.io/managed-by: Helm
     app: n9-api
     tier: api
@@ -123,10 +124,10 @@ metadata:
   name: scale-to-zero-controller-n9-api
   namespace: scale-to-zero-controller
   labels:
-    helm.sh/chart: n9-api-0.8.0
+    helm.sh/chart: n9-api-0.9.0
     app.kubernetes.io/name: n9-api
     app.kubernetes.io/instance: scale-to-zero-controller
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.9.0
     app.kubernetes.io/managed-by: Helm
     app: n9-api
 spec:
@@ -191,7 +192,7 @@ spec:
           - name: JAVA_TOOL_OPTIONS
             value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=15098,suspend=n"
           - name: LOGGING_LEVEL_IO_NEO9_SCALER
-            value: "TRACE"
+            value: "DEBUG"
           - name: SPRING_PROFILES_ACTIVE
             value: "dev"
           resources:

@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
+import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_CLOUD_PROVIDER_CONTROLLER_VALUE;
 import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE;
 import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
@@ -42,7 +43,7 @@ public class EndpointSliceHijackingService {
 		this.serviceRepository = serviceRepository;
 	}
 
-	public void hijack(EndpointSlice appEndpointSlice) {
+	public void hijackIfNecessary(EndpointSlice appEndpointSlice) {
 		Optional<EndpointSlice> controllerEndpointSliceOpt = endpointSliceRepository.findControllerEndpointSlice();
 		if (controllerEndpointSliceOpt.isEmpty()) {
 			log.warn("did not find controller endpointslice, cannot redirect traffic on me");
@@ -109,12 +110,20 @@ public class EndpointSliceHijackingService {
 		return true;
 	}
 
+	public void releaseHijackedIfNecessary(EndpointSlice appEndpointSlice) {
+		if (!ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE.equals(getLabelValue(ENDPOINT_SLICE_MANAGED_BY_KEY, appEndpointSlice))) {
+			log.debug("cannot release an non hijacked endpoint : {}", getResourceNamespaceAndName(appEndpointSlice));
+			return;
+		}
+		appEndpointSlice.getMetadata().getLabels().put(ENDPOINT_SLICE_MANAGED_BY_KEY, ENDPOINT_SLICE_MANAGED_BY_CLOUD_PROVIDER_CONTROLLER_VALUE);
+		endpointSliceRepository.patch(appEndpointSlice);
+	}
+
 	public void reconcileEndpointSliceWithNewControllerEndpointSlice() {
 		log.info("controller endpointslice changed, starting listeners update");
 		endpointSliceRepository
 				.findAllWithLabels(Map.of(IS_ALLOWED_TO_SCALE_LABEL_KEY, IS_ALLOWED_TO_SCALE_LABEL_VALUE))
-				.forEach(appEndpointSlice -> hijack(appEndpointSlice));
+				.forEach(appEndpointSlice -> hijackIfNecessary(appEndpointSlice));
 		log.info("controller endpointslice changed, end of listeners update");
 	}
-
 }

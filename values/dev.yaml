@@ -8,7 +8,7 @@ pod:
     SPRING_PROFILES_ACTIVE: dev
     EXTENSION_EXPOSER_ENABLED: true
     EXTENSION_EXPOSER_DOMAIN: neokube.neo9.pro
-    LOGGING_LEVEL_IO_NEO9_SCALER: TRACE
+    LOGGING_LEVEL_IO_NEO9_SCALER: DEBUG
 
 healthCheck:
   failureThreshold: 100 # for breakpoint debuging purpose
