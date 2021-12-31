@@ -21,19 +21,20 @@ public abstract class ReconnectableSingleWatcher<Kind extends HasMetadata, KindL
 
 	private final BiFunction<Action, Kind, Void> onEventReceived;
 
+	private final FilterWatchListDeletable<Kind, KindList> filterWatch;
+
 	private Watch watch;
 
-	protected ReconnectableSingleWatcher(String uniqueWatcherIdentifier, BiFunction<Action, Kind, Void> onEventReceived) {
+	protected ReconnectableSingleWatcher(String uniqueWatcherIdentifier, FilterWatchListDeletable<Kind, KindList> filterWatch, BiFunction<Action, Kind, Void> onEventReceived) {
 		this.uniqueWatcherIdentifier = uniqueWatcherIdentifier;
+		this.filterWatch = filterWatch;
 		this.onEventReceived = onEventReceived;
 	}
-
-	public abstract FilterWatchListDeletable<Kind, KindList> watch();
 
 	public void startWatch(ReconnectableControllerOrchestrator reconnectableControllerOrchestrator) {
 		stopWatch(); // make sur only one watch is open at any time
 		log.info("starting watch loop {}", uniqueWatcherIdentifier);
-		watch = watch().watch(new RetryableWatcher<>(
+		watch = filterWatch.watch(new RetryableWatcher<>(
 				retryContext,
 				String.format("%s", uniqueWatcherIdentifier),
 				reconnectableControllerOrchestrator::startOrRestartWatch,

@@ -56,6 +56,7 @@ rules:
   - apps
   resources:
   - deployments
+  - statefulsets
   verbs:
   - watch
   - get
@@ -192,7 +193,7 @@ spec:
           - name: JAVA_TOOL_OPTIONS
             value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=15098,suspend=n"
           - name: LOGGING_LEVEL_IO_NEO9_SCALER
-            value: "DEBUG"
+            value: "TRACE"
           - name: SPRING_PROFILES_ACTIVE
             value: "dev"
           resources:

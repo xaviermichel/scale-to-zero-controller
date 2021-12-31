@@ -40,5 +40,5 @@ clusterrole:
     resources: ["endpointslices"]
     verbs: ["watch", "get", "list", "update", "patch"]
   - apiGroups: ["apps"]
-    resources: ["deployments"]
+    resources: ["deployments", "statefulsets"]
     verbs: ["watch", "get", "list", "update", "patch"]

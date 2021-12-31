@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
+// https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
 public class TcpTableEntry {
 	private String slot;
 

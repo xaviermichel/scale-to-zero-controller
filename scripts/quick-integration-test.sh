@@ -24,12 +24,13 @@ function checkIfPatternPresent() {
     fi
 }
 
-function checkDeploymentReplicaCount() {
-    deploymentNamespace=$1
-    deploymentName=$2
-    expectation=$3
+function checkReplicaCount() {
+    deploymentKind=$1
+    deploymentNamespace=$2
+    deploymentName=$3
+    expectation=$4
     sleep 3
-    replicas=$(kubectl ${kubeContextArgs} -n ${deploymentNamespace} get deployment ${deploymentName} --no-headers -o=custom-columns=REPLICA:.spec.replicas)
+    replicas=$(kubectl ${kubeContextArgs} -n ${deploymentNamespace} get ${deploymentKind} ${deploymentName} --no-headers -o=custom-columns=REPLICA:.spec.replicas)
     if [ ${replicas} == ${expectation} ]; then
         echo "assertion ok"
     else
@@ -59,20 +60,40 @@ done
 
 
 #
-# echoserver
+# echoserver-deployment
 #
 
 waitForPodReady default echoserver-deployment
-checkDeploymentReplicaCount "default" "echoserver-deployment" "1"
+checkReplicaCount "deployment" "default" "echoserver-deployment" "1"
 
 for i in $(seq 3); do # the test will be played multiple time
-    checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-deployment.dev-xmichel.neokube.neo9.pro" "request_version"
+    checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-deployment.dev-xmichel.neokube.neo9.pro" "echoserver-deployment.dev-xmichel.neokube.neo9.pro"
 
     # scale down (not automatized yet)
     kubectl ${kubeContextArgs} -n default scale --replicas=0 deployment/echoserver-deployment
-    checkDeploymentReplicaCount "default" "echoserver-deployment" "0"
+    checkReplicaCount "deployment" "default" "echoserver-deployment" "0"
 
     # scale up on request
-    checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-deployment.dev-xmichel.neokube.neo9.pro" "request_version"
-    checkDeploymentReplicaCount "default" "echoserver-deployment" "2"
+    checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-deployment.dev-xmichel.neokube.neo9.pro" "echoserver-deployment.dev-xmichel.neokube.neo9.pro"
+    checkReplicaCount "deployment" "default" "echoserver-deployment" "2"
+done
+
+#
+# echoserver-statefulset
+#
+
+waitForPodReady default echoserver-statefulset
+checkReplicaCount "statefulset" "default" "echoserver-statefulset" "1"
+
+for i in $(seq 3); do # the test will be played multiple time
+    checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-statefulset.dev-xmichel.neokube.neo9.pro" "echoserver-statefulset.dev-xmichel.neokube.neo9.pro"
+
+    # scale down (not automatized yet)
+    kubectl ${kubeContextArgs} -n default scale --replicas=0 statefulset/echoserver-statefulset
+    sleep 10
+    checkReplicaCount "statefulset" "default" "echoserver-statefulset" "0"
+
+    # scale up on request
+    checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-statefulset.dev-xmichel.neokube.neo9.pro" "echoserver-statefulset.dev-xmichel.neokube.neo9.pro"
+    checkReplicaCount "statefulset" "default" "echoserver-statefulset" "2"
 done
