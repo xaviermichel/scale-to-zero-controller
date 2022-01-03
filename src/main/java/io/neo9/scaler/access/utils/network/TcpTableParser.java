@@ -16,7 +16,15 @@ import lombok.extern.slf4j.Slf4j;
 public class TcpTableParser {
 
 	// Pattern to parse /proc/net/tcp
-	private static final Pattern fieldsPattern = Pattern.compile("^\\s*(\\d+): ([0-9A-F]+):(....) ([0-9A-F]+):(....) (..) (?:\\S+ ){3}\\s*(\\d+)\\s+\\d+\\s+(\\d+).*$");
+	// https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
+	private static final Pattern fieldsPattern = Pattern.compile(
+			// 46: 010310AC:9C4C 030310AC:1770 01
+			"^\\s*(\\d+): ([0-9A-F]+):(....) ([0-9A-F]+):(....) (..) " +
+					// 00000150:00000000 01:00000019 00000000
+					"([0-9A-F]+):([0-9A-F]+) (..):([0-9A-F]+) ([0-9A-F]+)\\s+" +
+					//1000        0 54165785 4 cd1e6040 25 4 27 3 -1
+					"(\\d+)\\s+\\d+\\s+(\\d+).*$"
+	);
 
 	public static List<TcpTableEntry> parseTCPTable(String tcpTableOutput) {
 		List<TcpTableEntry> netstatEntries = new ArrayList<>();
@@ -38,8 +46,9 @@ public class TcpTableParser {
 			builder.remoteAddress(fromLittleEndianHexValue(match.group(4)));
 			builder.remotePort(hexStringToBase10String(match.group(5)));
 			builder.state(hexStringToBase10String(match.group(6)));
-			builder.uid(match.group(7));
-			builder.inode(match.group(8));
+
+			builder.uid(match.group(12));
+			builder.inode(match.group(13));
 
 			netstatEntries.add(builder.build());
 		}

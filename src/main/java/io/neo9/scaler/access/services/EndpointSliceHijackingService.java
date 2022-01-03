@@ -30,6 +30,8 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 @Slf4j
 public class EndpointSliceHijackingService {
 
+	private final static String ENPOINT_SLICE_ADDRESS_TYPE_IPV4 = "IPv4";
+
 	// not trivial, dynamically starts tcp handlers on the right port when a deployment is scaled to 0
 	private final DynamicRequestHandler dynamicRequestHandler;
 
@@ -43,7 +45,16 @@ public class EndpointSliceHijackingService {
 		this.serviceRepository = serviceRepository;
 	}
 
+	private boolean isIPV4EndpointSlice(EndpointSlice appEndpointSlice) {
+		return ENPOINT_SLICE_ADDRESS_TYPE_IPV4.equals(appEndpointSlice.getAddressType());
+	}
+
 	public void hijackIfNecessary(EndpointSlice appEndpointSlice) {
+		if (!isIPV4EndpointSlice(appEndpointSlice)) {
+			log.warn("only ipv4 traffic control is implemented, cannot work on {}", getResourceNamespaceAndName(appEndpointSlice));
+			return;
+		}
+
 		Optional<EndpointSlice> controllerEndpointSliceOpt = endpointSliceRepository.findControllerEndpointSlice();
 		if (controllerEndpointSliceOpt.isEmpty()) {
 			log.warn("did not find controller endpointslice, cannot redirect traffic on me");
@@ -113,6 +124,10 @@ public class EndpointSliceHijackingService {
 	public void releaseHijackedIfNecessary(EndpointSlice appEndpointSlice) {
 		if (!ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE.equals(getLabelValue(ENDPOINT_SLICE_MANAGED_BY_KEY, appEndpointSlice))) {
 			log.debug("cannot release an non hijacked endpoint : {}", getResourceNamespaceAndName(appEndpointSlice));
+			return;
+		}
+		if (!isIPV4EndpointSlice(appEndpointSlice)) {
+			log.warn("only ipv4 traffic control is implemented, cannot work on {}", getResourceNamespaceAndName(appEndpointSlice));
 			return;
 		}
 		appEndpointSlice.getMetadata().getLabels().put(ENDPOINT_SLICE_MANAGED_BY_KEY, ENDPOINT_SLICE_MANAGED_BY_CLOUD_PROVIDER_CONTROLLER_VALUE);

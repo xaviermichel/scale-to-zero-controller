@@ -1,10 +1,10 @@
 package io.neo9.scaler.access.controllers.kubernetes;
 
-import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentList;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.neo9.scaler.access.exceptions.MissingLabelException;
-import io.neo9.scaler.access.services.DeploymentHijackingService;
+import io.neo9.scaler.access.services.StatefulsetHijackingService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -15,36 +15,36 @@ import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceName
 
 @Component
 @Slf4j
-public class DeploymentController extends ReconnectableSingleWatcher<Deployment, DeploymentList> {
+public class StatefulsetController extends ReconnectableSingleWatcher<StatefulSet, StatefulSetList> {
 
-	public DeploymentController(KubernetesClient kubernetesClient, DeploymentHijackingService deploymentHijackingService) {
+	public StatefulsetController(KubernetesClient kubernetesClient, StatefulsetHijackingService statefulsetHijackingService) {
 		super(
 				/* unique name */
-				"deployment-onScalableLabel",
+				"statefulset-onScalableLabel",
 				/* watch what */
-				kubernetesClient.apps().deployments()
+				kubernetesClient.apps().statefulSets()
 						.inAnyNamespace()
 						.withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, IS_ALLOWED_TO_SCALE_LABEL_VALUE),
 				/* on event */
-				(action, deployment) -> {
-					String deploymentNamespaceAndName = getResourceNamespaceAndName(deployment);
-					log.trace("start process event on {}", deploymentNamespaceAndName);
+				(action, statefulset) -> {
+					String statefulsetNamespaceAndName = getResourceNamespaceAndName(statefulset);
+					log.trace("start process event on {}", statefulsetNamespaceAndName);
 					switch (action) {
 						case ADDED:
 						case MODIFIED:
-							log.info("update event detected for : {}", deploymentNamespaceAndName);
+							log.info("update event detected for : {}", statefulsetNamespaceAndName);
 							try {
-								deploymentHijackingService.releaseIfNecessary(deployment);
+								statefulsetHijackingService.releaseIfNecessary(statefulset);
 							}
 							catch (MissingLabelException e) {
-								log.error("panic: could not update deployment", e);
+								log.error("panic: could not update statefulset", e);
 							}
 							break;
 						default:
 							// do nothing on deletion
 							break;
 					}
-					log.trace("end of process event on {}", deploymentNamespaceAndName);
+					log.trace("end of process event on {}", statefulsetNamespaceAndName);
 					return null;
 				}
 		);

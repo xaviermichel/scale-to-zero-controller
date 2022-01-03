@@ -3,7 +3,7 @@ package io.neo9.scaler.access.services;
 import java.util.List;
 import java.util.Map;
 
-import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.MissingLabelException;
@@ -18,7 +18,7 @@ import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceName
 
 @Service
 @Slf4j
-public class DeploymentHijackingService {
+public class StatefulsetHijackingService {
 
 	private final ScaleToZeroConfig scaleToZeroConfig;
 
@@ -28,7 +28,7 @@ public class DeploymentHijackingService {
 
 	private final PodRepository podRepository;
 
-	public DeploymentHijackingService(ScaleToZeroConfig scaleToZeroConfig, EndpointSliceHijackingService endpointSliceHijackingService, EndpointSliceRepository endpointSliceRepository, PodRepository podRepository) {
+	public StatefulsetHijackingService(ScaleToZeroConfig scaleToZeroConfig, EndpointSliceHijackingService endpointSliceHijackingService, EndpointSliceRepository endpointSliceRepository, PodRepository podRepository) {
 		this.scaleToZeroConfig = scaleToZeroConfig;
 		this.endpointSliceHijackingService = endpointSliceHijackingService;
 		this.endpointSliceRepository = endpointSliceRepository;
@@ -38,23 +38,23 @@ public class DeploymentHijackingService {
 	/**
 	 * Only release if :
 	 *  * replicas count is more than 0
-	 *  * there is at least one available replica
+	 *  * all pods are in available replica
 	 */
-	public void releaseIfNecessary(Deployment deployment) throws MissingLabelException {
-		Map<String, String> appIdentifierLabels = getLabelsValues(deployment, scaleToZeroConfig.getApplicationIdentifierLabels());
-		List<EndpointSlice> endpointSlicesOfDeployment = endpointSliceRepository.findAllWithLabels(deployment.getMetadata().getNamespace(), appIdentifierLabels);
+	public void releaseIfNecessary(StatefulSet statefulSet) throws MissingLabelException {
+		Map<String, String> appIdentifierLabels = getLabelsValues(statefulSet, scaleToZeroConfig.getApplicationIdentifierLabels());
+		List<EndpointSlice> endpointSlicesOfDeployment = endpointSliceRepository.findAllWithLabels(statefulSet.getMetadata().getNamespace(), appIdentifierLabels);
 
-		if (expectMoreThanOneReplica(deployment) && atLeastOnePodIsInRunningPhase(deployment, appIdentifierLabels)) {
-			log.info("releasing hijack on {}", getResourceNamespaceAndName(deployment));
+		if (expectMoreThanOneReplica(statefulSet) && allPodsAreInRunningPhase(statefulSet, appIdentifierLabels)) {
+			log.info("releasing hijack on {}", getResourceNamespaceAndName(statefulSet));
 			endpointSlicesOfDeployment.forEach(e -> endpointSliceHijackingService.releaseHijackedIfNecessary(e));
 		}
 	}
 
-	private boolean expectMoreThanOneReplica(Deployment deployment) {
-		return deployment.getSpec().getReplicas() > 0;
+	private boolean expectMoreThanOneReplica(StatefulSet statefulSet) {
+		return statefulSet.getSpec().getReplicas() > 0;
 	}
 
-	private boolean atLeastOnePodIsInRunningPhase(Deployment deployment, Map<String, String> appIdentifierLabels) {
-		return podRepository.findAllWithLabelsInPhase(deployment.getMetadata().getNamespace(), appIdentifierLabels, "Running").size() > 0;
+	private boolean allPodsAreInRunningPhase(StatefulSet statefulSet, Map<String, String> appIdentifierLabels) {
+		return statefulSet.getSpec().getReplicas().equals(podRepository.findAllWithLabelsInPhase(statefulSet.getMetadata().getNamespace(), appIdentifierLabels, "Running").size());
 	}
 }

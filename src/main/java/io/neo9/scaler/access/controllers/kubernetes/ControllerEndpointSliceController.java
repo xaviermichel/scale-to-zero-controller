@@ -3,7 +3,6 @@ package io.neo9.scaler.access.controllers.kubernetes;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSliceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
 import io.neo9.scaler.access.services.EndpointSliceHijackingService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,33 +16,31 @@ import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceName
 @Slf4j
 public class ControllerEndpointSliceController extends ReconnectableSingleWatcher<EndpointSlice, EndpointSliceList> {
 
-	private final KubernetesClient kubernetesClient;
-
 	public ControllerEndpointSliceController(KubernetesClient kubernetesClient, EndpointSliceHijackingService endpointSliceHijackingService) {
-		super("endpointSlice-onControllerEndpoints", (action, endpointSlice) -> {
-			String endpointNamespaceAndName = getResourceNamespaceAndName(endpointSlice);
-			log.trace("start process event on {}", endpointNamespaceAndName);
-			switch (action) {
-				case ADDED:
-				case MODIFIED:
-					log.info("update event detected for {}", endpointNamespaceAndName);
-					endpointSliceHijackingService.reconcileEndpointSliceWithNewControllerEndpointSlice();
-					break;
-				default:
-					// do nothing on deletion
-					break;
-			}
-			log.trace("end of process event on {}", endpointNamespaceAndName);
-			return null;
-		});
-		this.kubernetesClient = kubernetesClient;
+		super(
+				/* unique name */
+				"endpointSlice-onControllerEndpoints",
+				/* watch what */
+				kubernetesClient.discovery().v1beta1().endpointSlices()
+						.inAnyNamespace()
+						.withLabel(IS_SCALER_LABEL_KEY, IS_SCALER_LABEL_VALUE),
+				/* on event */
+				(action, endpointSlice) -> {
+					String endpointNamespaceAndName = getResourceNamespaceAndName(endpointSlice);
+					log.trace("start process event on {}", endpointNamespaceAndName);
+					switch (action) {
+						case ADDED:
+						case MODIFIED:
+							log.info("update event detected for {}", endpointNamespaceAndName);
+							endpointSliceHijackingService.reconcileEndpointSliceWithNewControllerEndpointSlice();
+							break;
+						default:
+							// do nothing on deletion
+							break;
+					}
+					log.trace("end of process event on {}", endpointNamespaceAndName);
+					return null;
+				}
+		);
 	}
-
-	@Override
-	public FilterWatchListDeletable<EndpointSlice, EndpointSliceList> watch() {
-		return kubernetesClient.discovery().v1beta1().endpointSlices()
-				.inAnyNamespace()
-				.withLabel(IS_SCALER_LABEL_KEY, IS_SCALER_LABEL_VALUE);
-	}
-
 }

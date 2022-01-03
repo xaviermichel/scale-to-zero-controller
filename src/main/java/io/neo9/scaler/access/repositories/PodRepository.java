@@ -52,7 +52,6 @@ public class PodRepository {
 				.list().getItems();
 	}
 
-
 	public Pod waitUntilPodIsReady(Pod pod, int timeoutInSeconds) {
 		return kubernetesClient.resource(pod)
 				.inNamespace(pod.getMetadata().getNamespace())
