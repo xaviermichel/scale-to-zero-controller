@@ -49,7 +49,7 @@ jobs:
         cd scripts
         make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
         make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
-        ./quick-integration-test.sh || testsFailed=1
+        ./run-integration-tests.sh || testsFailed=1
         cd -
         echo "===\n===\n==="
         kubectl -n scale-to-zero-controller logs deploy/scale-to-zero-controller-n9-api
@@ -108,7 +108,7 @@ jobs:
           cd scripts
           make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} import-image-in-k3s
           make CLUSTER_NAME_AUTOPREFIX= CLUSTER_NAME_SERVERSUFFIX= CLUSTER_KUBE_CONTEXT= CLUSTER_NAME=k3s-${{ matrix.k8s_version }} start-controller
-          ./quick-integration-test.sh || testsFailed=1
+          ./run-integration-tests.sh || testsFailed=1
           cd -
           echo "===\n===\n==="
           kubectl -n scale-to-zero-controller logs deploy/scale-to-zero-controller-n9-api

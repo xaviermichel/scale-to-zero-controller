@@ -24,7 +24,7 @@ import-image-in-k3s:
 setup-k3s-for-test: start-k3s-for-test import-image-in-k3s
 
 run-integration-tests:
-	./quick-integration-test.sh $(CLUSTER_KUBE_CONTEXT)
+	./run-integration-tests.sh $(CLUSTER_KUBE_CONTEXT)
 
 start-controller:
 	kubeContextArgs=

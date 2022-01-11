@@ -22,7 +22,6 @@ public class ServiceRepository {
 		return kubernetesClient.services()
 				.inNamespace(namespace)
 				.withName(name)
-				.fromServer()
 				.get();
 	}
 

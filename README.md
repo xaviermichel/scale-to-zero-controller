@@ -65,6 +65,13 @@ metadata:
 
 That's all ! Deploy the controller (see `values/apply.sh` for an example of helm deployment), and you will have an on demand (traffic) scale for your app.
 
+Additional features
+-------------------
+
+You can **specify additional (dependencies) workload to scale up on request**. For example, when the workload A starts, it will trigger the workload A startup.
+To do this, you need to annotate the source (A) workload with : `scaling.neo9.io/before-scale-requirements: "name-of-workload-b"`. Indeed, the B workload must have the scaling label (`scaling.neo9.io/is-scalable: "true"`).
+
+
 Concepts
 --------
 
@@ -76,7 +83,7 @@ That's all ! Your deployment will be detected by controller and follow the rules
 
 Downscaling and Upscaling technicals actions are detailed bellow.
 
-# Downscaling
+### Downscaling
 
 Work in progress, there is no auto-downscaling for the moment. On manual downscale, the following behaviour is applied.
 
@@ -84,7 +91,7 @@ When a deployment have 0 replicas and is labelized for deployment, the controlle
 
 ![downscale process](https://raw.githubusercontent.com/xaviermichel/scale-to-zero-controller/master/docs/downscale.gif)
 
-# Upscaling
+### Upscaling
 
 When the controller receive a request that is destined to a downscaled deployment, it scales up the deployment and make a transparent traffic forward (proxy) for the current request. The next one will directly hit the upscaled deployment.
 
@@ -94,8 +101,9 @@ When the controller receive a request that is destined to a downscaled deploymen
 Similar projects
 ----------------
 
-This project is similar to [osiris](https://github.com/dailymotion-oss/osiris) but wants to :
+This project is similar to [osiris](https://github.com/dailymotion-oss/osiris) and [knative](https://knative.dev/) but wants to :
+* only focus on upscale for http event
 * focus on layer 4
 * uses `endpointslice` instead of `endpoints`
+* not need root access in pods
 * do not inject custom proxy
-

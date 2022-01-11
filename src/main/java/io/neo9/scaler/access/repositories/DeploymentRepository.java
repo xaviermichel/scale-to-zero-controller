@@ -19,6 +19,15 @@ public class DeploymentRepository {
 		this.kubernetesClient = kubernetesClient;
 	}
 
+	public Optional<Deployment> findOne(String namespace, String name) {
+		return Optional.ofNullable(
+				kubernetesClient.apps().deployments()
+					.inNamespace(namespace)
+					.withName(name)
+					.get()
+		);
+	}
+
 	public Optional<Deployment> findOneByLabels(String namespace, Map<String, String> filteringLabels) {
 		return kubernetesClient.apps().deployments()
 				.inNamespace(namespace)

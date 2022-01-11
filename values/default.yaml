@@ -39,6 +39,6 @@ clusterrole:
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
     verbs: ["watch", "get", "list", "update", "patch"]
-  - apiGroups: ["apps"]
+  - apiGroups: ["apps", "extensions"]
     resources: ["deployments", "statefulsets"]
     verbs: ["watch", "get", "list", "update", "patch"]

@@ -54,6 +54,7 @@ rules:
   - patch
 - apiGroups:
   - apps
+  - extensions
   resources:
   - deployments
   - statefulsets
@@ -152,13 +153,19 @@ spec:
     spec:
       serviceAccountName: scale-to-zero-controller-sa
       securityContext:
-        {}
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: n9-api
-          securityContext:
-            {}
           image: docker.io/neo9sas/scale-to-zero-controller:latest
           imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_BIND_SERVICE
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: 15099
@@ -193,7 +200,7 @@ spec:
           - name: JAVA_TOOL_OPTIONS
             value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=15098,suspend=n"
           - name: LOGGING_LEVEL_IO_NEO9_SCALER
-            value: "TRACE"
+            value: "DEBUG"
           - name: SPRING_PROFILES_ACTIVE
             value: "dev"
           resources:
