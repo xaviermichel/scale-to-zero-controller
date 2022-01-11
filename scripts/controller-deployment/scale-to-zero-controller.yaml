@@ -54,6 +54,7 @@ rules:
   - patch
 - apiGroups:
   - apps
+  - extensions
   resources:
   - deployments
   - statefulsets
@@ -193,7 +194,7 @@ spec:
           - name: JAVA_TOOL_OPTIONS
             value: "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=15098,suspend=n"
           - name: LOGGING_LEVEL_IO_NEO9_SCALER
-            value: "TRACE"
+            value: "DEBUG"
           - name: SPRING_PROFILES_ACTIVE
             value: "dev"
           resources:

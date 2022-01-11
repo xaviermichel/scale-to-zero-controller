@@ -19,6 +19,15 @@ public class StatefulsetRepository {
 		this.kubernetesClient = kubernetesClient;
 	}
 
+	public Optional<StatefulSet> findOne(String namespace, String name) {
+		return Optional.ofNullable(
+				kubernetesClient.apps().statefulSets()
+					.inNamespace(namespace)
+					.withName(name)
+					.get()
+		);
+	}
+
 	public Optional<StatefulSet> findOneByLabels(String namespace, Map<String, String> filteringLabels) {
 		return kubernetesClient.apps().statefulSets()
 				.inNamespace(namespace)
