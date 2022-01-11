@@ -75,7 +75,7 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 											})
 											.addLast("tcpProxy", new SimpleChannelInboundHandler<ByteBuf>() {
 												@Override
-												protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+												protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
 													clientChannel.writeAndFlush(msg.retain());
 												}
 

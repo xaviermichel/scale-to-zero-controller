@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
@@ -28,10 +29,13 @@ public class WorkloadService {
 
 	private final StatefulsetRepository statefulsetRepository;
 
-	public WorkloadService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository) {
+	private final PodService podService;
+
+	public WorkloadService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService) {
 		this.scaleToZeroConfig = scaleToZeroConfig;
 		this.deploymentRepository = deploymentRepository;
 		this.statefulsetRepository = statefulsetRepository;
+		this.podService = podService;
 	}
 
 
@@ -57,5 +61,15 @@ public class WorkloadService {
 		catch (MissingLabelException e) {
 			throw new InterruptedProxyForwardException(String.format("missing app identifier label on source %s : %s, aborting", getResourceNamespaceAndName(hasMetadata), scaleToZeroConfig.getApplicationIdentifierLabels()), e);
 		}
+	}
+
+	/**
+	 * wait for :
+	 * * all pods in case of statefulset
+	 * * one pod in case of deployment
+	 */
+	public Pod waitForWorkloadToBeReady(HasMetadata hasMetadata) {
+		boolean isWorkloadStateful = hasMetadata.getKind().equals(new StatefulSet().getKind());
+		return podService.waitForMatchingPodInReadyState(hasMetadata.getMetadata().getNamespace(), getWorkloadIdentifierLabels(hasMetadata), 300, isWorkloadStateful);
 	}
 }
