@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-with-dependency
+  name: nginx-privileged
   namespace: default
   labels:
-    app.kubernetes.io/name: "nginx-with-dependency"
-    app.kubernetes.io/instance: "nginx-with-dependency"
+    app.kubernetes.io/name: "nginx"
+    app.kubernetes.io/instance: "nginx"
     scaling.neo9.io/is-scalable: "true"
   annotations:
     # will upscale the stateful set while serving the request
@@ -14,46 +14,46 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: "nginx-with-dependency"
-      app.kubernetes.io/instance: "nginx-with-dependency"
+      app.kubernetes.io/name: "nginx"
+      app.kubernetes.io/instance: "nginx"
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: "nginx-with-dependency"
-        app.kubernetes.io/instance: "nginx-with-dependency"
+        app.kubernetes.io/name: "nginx"
+        app.kubernetes.io/instance: "nginx"
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.20
+          image: nginx
           ports:
-            - containerPort: 8080
+            - containerPort: 80
           readinessProbe:
             successThreshold: 1
             failureThreshold: 3
             periodSeconds: 10
             httpGet:
               path: /
-              port: 8080
+              port: 80
               scheme: HTTP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-with-dependency
+  name: nginx-privileged
   namespace: default
   labels:
-    app.kubernetes.io/name: "nginx-with-dependency"
-    app.kubernetes.io/instance: "nginx-with-dependency"
+    app.kubernetes.io/name: "nginx"
+    app.kubernetes.io/instance: "nginx"
     scaling.neo9.io/is-scalable: "true"
 spec:
   selector:
-    app.kubernetes.io/name: "nginx-with-dependency"
-    app.kubernetes.io/instance: "nginx-with-dependency"
+    app.kubernetes.io/name: "nginx"
+    app.kubernetes.io/instance: "nginx"
   ports:
     - name: http
-      port: 8080
+      port: 80
       protocol: TCP
-      targetPort: 8080
+      targetPort: 80
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -62,17 +62,17 @@ metadata:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32,127.0.0.0/8
-  name: nginx-with-dependency
+  name: nginx-privileged
   namespace: default
 spec:
   rules:
-    - host: nginx-with-dependency.dev-xmichel.neokube.neo9.pro
+    - host: nginx-privileged.dev-xmichel.neokube.neo9.pro
       http:
         paths:
           - backend:
               service:
-                name: nginx-with-dependency
+                name: nginx-privileged
                 port:
-                  number: 8080
+                  number: 80
             path: /
             pathType: Prefix
