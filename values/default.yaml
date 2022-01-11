@@ -42,3 +42,14 @@ clusterrole:
   - apiGroups: ["apps", "extensions"]
     resources: ["deployments", "statefulsets"]
     verbs: ["watch", "get", "list", "update", "patch"]
+
+# only required if you want/need to bind privileged ports (80 for example).
+# you may not want that, it means that the container run as root !
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    add:
+      - NET_BIND_SERVICE
+    drop:
+      - ALL
+  runAsUser: 0

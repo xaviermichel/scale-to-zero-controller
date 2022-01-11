@@ -44,6 +44,6 @@ for i in $(seq 3); do # the test will be played multiple time
   . ./integration-tests/deployment-with-dependency.sh
 done
 
-# not working yet, the controller cannot bind port 80
-#waitForPodReady default nginx-privileged
-#. ./integration-tests/deployment-privileged-port.sh
+
+waitForPodReady default nginx-privileged
+. ./integration-tests/deployment-privileged-port.sh
