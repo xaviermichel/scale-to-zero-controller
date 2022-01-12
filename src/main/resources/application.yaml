@@ -26,3 +26,9 @@ scaler:
   applicationIdentifierLabels:
     - app.kubernetes.io/name
     - app.kubernetes.io/instance
+  # used for splash screen
+  publicUrl: http://127.0.0.1:15099
+  envNameMatchers:
+    - regex: "^.*\\.(.*)\\.neokube\\.neo9\\.pro$"
+      prefix: ""
+      suffix: ""

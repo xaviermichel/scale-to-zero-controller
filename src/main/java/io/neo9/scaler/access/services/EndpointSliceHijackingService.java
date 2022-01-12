@@ -17,11 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
+import static io.neo9.scaler.access.config.Commons.TRUE;
 import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_CLOUD_PROVIDER_CONTROLLER_VALUE;
 import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE;
 import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
-import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -137,7 +137,7 @@ public class EndpointSliceHijackingService {
 	public void reconcileEndpointSliceWithNewControllerEndpointSlice() {
 		log.info("controller endpointslice changed, starting listeners update");
 		endpointSliceRepository
-				.findAllWithLabels(Map.of(IS_ALLOWED_TO_SCALE_LABEL_KEY, IS_ALLOWED_TO_SCALE_LABEL_VALUE))
+				.findAllWithLabels(Map.of(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE))
 				.forEach(appEndpointSlice -> hijackIfNecessary(appEndpointSlice));
 		log.info("controller endpointslice changed, end of listeners update");
 	}

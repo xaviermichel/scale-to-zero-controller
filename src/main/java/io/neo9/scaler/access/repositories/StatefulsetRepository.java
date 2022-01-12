@@ -1,5 +1,6 @@
 package io.neo9.scaler.access.repositories;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,9 +23,9 @@ public class StatefulsetRepository {
 	public Optional<StatefulSet> findOne(String namespace, String name) {
 		return Optional.ofNullable(
 				kubernetesClient.apps().statefulSets()
-					.inNamespace(namespace)
-					.withName(name)
-					.get()
+						.inNamespace(namespace)
+						.withName(name)
+						.get()
 		);
 	}
 
@@ -42,5 +43,12 @@ public class StatefulsetRepository {
 				.inNamespace(statefulSet.getMetadata().getNamespace())
 				.withName(statefulSet.getMetadata().getName())
 				.scale(count, wait);
+	}
+
+	public List<StatefulSet> findAllInNamespace(String namespace, Map<String, String> filteringLabels) {
+		return kubernetesClient.apps().statefulSets()
+				.inNamespace(namespace)
+				.withLabels(filteringLabels)
+				.list().getItems();
 	}
 }

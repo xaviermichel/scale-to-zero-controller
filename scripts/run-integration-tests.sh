@@ -47,3 +47,7 @@ done
 
 waitForPodReady default nginx-privileged
 . ./integration-tests/deployment-privileged-port.sh
+
+waitForPodReady default app-with-splash-screen
+. ./integration-tests/deployment-with-splash-screen.sh
+

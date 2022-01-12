@@ -4,27 +4,27 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.neo9.scaler.access.exceptions.MissingLabelException;
-import io.neo9.scaler.access.services.StatefulsetHijackingService;
+import io.neo9.scaler.access.services.WorkloadHijackingService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import static io.neo9.scaler.access.config.Commons.TRUE;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
-import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
 
 @Component
 @Slf4j
 public class StatefulsetController extends ReconnectableSingleWatcher<StatefulSet, StatefulSetList> {
 
-	public StatefulsetController(KubernetesClient kubernetesClient, StatefulsetHijackingService statefulsetHijackingService) {
+	public StatefulsetController(KubernetesClient kubernetesClient, WorkloadHijackingService workloadHijackingService) {
 		super(
 				/* unique name */
 				"statefulset-onScalableLabel",
 				/* watch what */
 				kubernetesClient.apps().statefulSets()
 						.inAnyNamespace()
-						.withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, IS_ALLOWED_TO_SCALE_LABEL_VALUE),
+						.withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE),
 				/* on event */
 				(action, statefulset) -> {
 					String statefulsetNamespaceAndName = getResourceNamespaceAndName(statefulset);
@@ -34,7 +34,7 @@ public class StatefulsetController extends ReconnectableSingleWatcher<StatefulSe
 						case MODIFIED:
 							log.info("update event detected for : {}", statefulsetNamespaceAndName);
 							try {
-								statefulsetHijackingService.releaseIfNecessary(statefulset);
+								workloadHijackingService.releaseIfNecessary(statefulset);
 							}
 							catch (MissingLabelException e) {
 								log.error("panic: could not update statefulset", e);

@@ -10,20 +10,25 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
+import io.neo9.scaler.access.models.UpscalingContext;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
 import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
 import io.neo9.scaler.access.repositories.StatefulsetRepository;
+import io.neo9.scaler.access.utils.common.KubernetesUtils;
 import io.neo9.scaler.access.utils.network.TcpTableEntry;
 import io.neo9.scaler.access.utils.network.TcpTableParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import static io.neo9.scaler.access.config.Annotations.BEFORE_SCALE_REQUIREMENTS;
+import static io.neo9.scaler.access.config.Annotations.SHOW_SPLASH_SCREEN;
+import static io.neo9.scaler.access.config.Commons.ISTIO_SIDECAR_CONTAINER_NAME;
+import static io.neo9.scaler.access.config.Commons.TRUE;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
-import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getAnnotationValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
@@ -35,8 +40,6 @@ import static java.util.stream.Collectors.toList;
 @Service
 @Slf4j
 public class UpscalerTcpProxyService {
-
-	private static final String ISTIO_SIDECAR_CONTAINER_NAME = "istio-proxy";
 
 	private final PodRepository podRepository;
 
@@ -50,6 +53,9 @@ public class UpscalerTcpProxyService {
 
 	private final PodService podService;
 
+	@Value("${server.port}")
+	private int serverPort;
+
 	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, WorkloadService workloadService, PodService podService) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
@@ -62,7 +68,7 @@ public class UpscalerTcpProxyService {
 	/**
 	 * Takes source and destination, and return the endpoint to add to proxy chain
 	 */
-	public InetSocketAddress forwardRequest(InetSocketAddress localAddress, InetSocketAddress remoteAddress) {
+	public UpscalingContext forwardRequest(UpscalingContext context, InetSocketAddress localAddress, InetSocketAddress remoteAddress) {
 		Pod sourcePod = podService.getSourcePod(remoteAddress.getAddress().getHostAddress());
 		log.info("forwarding request from {}", getResourceNamespaceAndName(sourcePod));
 
@@ -79,47 +85,65 @@ public class UpscalerTcpProxyService {
 
 		String workloadNamespaceAndName = getResourceNamespaceAndName(workloadToScale);
 		log.debug("checking if {} needs to scale", workloadNamespaceAndName);
-		if (!IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, workloadToScale))) {
+		if (!TRUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, workloadToScale))) {
 			throw new InterruptedProxyForwardException(String.format("%s, does not have scaling label, won't do any action on it", workloadToScale));
 		}
 
-		Pod targetPod = scaleUp(workloadToScale);
+		Pod targetPod = scaleUp(context, workloadToScale);
 		log.debug("{} have at least one replica required", workloadNamespaceAndName);
 
-		return new InetSocketAddress(targetPod.getStatus().getPodIP(), localAddress.getPort());
+		if (context.isLoadInBackgroundAndReturnSplashScreenForward()) {
+			context.setProxyTargetAddress(new InetSocketAddress("127.0.0.1", serverPort));
+		}
+		else {
+			if (targetPod == null) {
+				log.warn("cannot forward traffic on a null target pod, using self");
+				context.setProxyTargetAddress(new InetSocketAddress("127.0.0.1", serverPort));
+			}
+			else {
+				context.setProxyTargetAddress(new InetSocketAddress(targetPod.getStatus().getPodIP(), localAddress.getPort()));
+			}
+		}
+
+		return context;
 	}
 
-	private Pod scaleUp(HasMetadata workloadToScale) {
-		return scaleUp(workloadToScale, true);
+	private Pod scaleUp(UpscalingContext context, HasMetadata workloadToScale) {
+		return scaleUp(context, workloadToScale, true);
 	}
 
-	private Pod scaleUp(HasMetadata workloadToScale, boolean waitForScaleFinished) {
-		handleBeforeScaleRequirements(workloadToScale);
+	private Pod scaleUp(UpscalingContext context, HasMetadata workloadToScale, boolean waitForScaleFinished) {
+		handleBeforeScaleRequirements(context, workloadToScale);
 
 		if (workloadToScale.getKind().equals(new Deployment().getKind())) {
 			Deployment deployment = (Deployment) workloadToScale;
 			if (deployment.getSpec().getReplicas() == 0) {
-				deploymentRepository.scale(deployment, 2, true); // TODO : not always scale to 2
+				deploymentRepository.scale(deployment, 2, !context.isLoadInBackgroundAndReturnSplashScreenForward()); // TODO : not always scale to 2
 			}
 		}
 		else if (workloadToScale.getKind().equals(new StatefulSet().getKind())) {
 			StatefulSet statefulSet = (StatefulSet) workloadToScale;
 			if (statefulSet.getSpec().getReplicas() == 0) {
-				statefulsetRepository.scale(statefulSet, 2, true); // TODO : not always scale to 2
+				statefulsetRepository.scale(statefulSet, 2, !context.isLoadInBackgroundAndReturnSplashScreenForward()); // TODO : not always scale to 2
 			}
 		}
 		else {
-			throw new InterruptedProxyForwardException(String.format("could not identify workload to scale up", workloadToScale));
+			throw new InterruptedProxyForwardException(String.format("could not identify workload to scale up : %s", workloadToScale));
 		}
 
-		if (!waitForScaleFinished) {
+		if (!waitForScaleFinished || context.isLoadInBackgroundAndReturnSplashScreenForward()) {
 			return null;
 		}
 
 		return workloadService.waitForWorkloadToBeReady(workloadToScale);
 	}
 
-	private void handleBeforeScaleRequirements(HasMetadata workloadToScale) {
+	private void handleBeforeScaleRequirements(UpscalingContext context, HasMetadata workloadToScale) {
+		if (TRUE.equals(getAnnotationValue(SHOW_SPLASH_SCREEN, workloadToScale))) {
+			log.info("splash screen required for workload {}, will finish loading in background", getResourceNamespaceAndName(workloadToScale));
+			context.setLoadInBackgroundAndReturnSplashScreenForward(true);
+		}
+
 		List<HasMetadata> workloadsToScale = stream(getAnnotationValue(BEFORE_SCALE_REQUIREMENTS, workloadToScale, EMPTY).split(COMMA))
 				.map(String::trim)
 				.filter(StringUtils::isNotBlank)
@@ -135,7 +159,11 @@ public class UpscalerTcpProxyService {
 		// 1st loop to start all workloads without wait (background)
 		for (HasMetadata requiredWorkload : workloadsToScale) {
 			log.info("pre-scale requirement, starting : {}", getResourceNamespaceAndName(requiredWorkload));
-			scaleUp(requiredWorkload, false);
+			scaleUp(context, requiredWorkload, false);
+		}
+
+		if (context.isLoadInBackgroundAndReturnSplashScreenForward()) {
+			return;
 		}
 
 		// 2nd loop to wait each workload to have the expected result
@@ -143,7 +171,6 @@ public class UpscalerTcpProxyService {
 			log.info("pre-scale requirement, waiting for : {}", getResourceNamespaceAndName(requiredWorkload));
 			workloadService.waitForWorkloadToBeReady(requiredWorkload);
 		}
-
 	}
 
 	private io.fabric8.kubernetes.api.model.Service getTargetedScalingServiceByPod(Pod sourcePod, InetSocketAddress localAddress) {
@@ -166,17 +193,17 @@ public class UpscalerTcpProxyService {
 					Integer inode2 = Integer.parseInt(e2.getInode());
 					return inode2.compareTo(inode1); // reverse order !
 				})
-				.map(t -> t.getRemoteAddress())
+				.map(TcpTableEntry::getRemoteAddress)
 				.distinct()
 				// get source service
-				.map(ip -> serviceRepository.findServiceByIp(ip))
+				.map(serviceRepository::findServiceByIp)
 				.filter(Optional::isPresent)
 				.map(Optional::get)
-				.filter(service -> IS_ALLOWED_TO_SCALE_LABEL_VALUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
+				.filter(service -> TRUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
 				.collect(toList());
 
 		if (log.isDebugEnabled()) {
-			log.debug("list of candidates : {}", targetedServices.stream().map(s -> getResourceNamespaceAndName(s)).collect(toList()));
+			log.debug("list of candidates : {}", targetedServices.stream().map(KubernetesUtils::getResourceNamespaceAndName).collect(toList()));
 		}
 		if (targetedServices.isEmpty()) {
 			throw new InterruptedProxyForwardException("could not detected the service at the source of the request, aborting");

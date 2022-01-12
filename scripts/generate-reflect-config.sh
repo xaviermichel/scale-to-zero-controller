@@ -68,7 +68,8 @@ for jarGroupArtefactVersion in \
 done
 
 cat <<EOF >> $targetFile
-  {"name": "io.neo9.ingress.access.config.ScaleToZeroConfig", "allDeclaredMethods": true, "allPublicConstructors": true}
+  {"name": "io.neo9.scaler.access.configScaleToZeroConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
+  {"name": "io.neo9.scaler.access.config.EnvNameMatcher", "allDeclaredMethods": true, "allPublicConstructors": true}
 ]
 EOF
 

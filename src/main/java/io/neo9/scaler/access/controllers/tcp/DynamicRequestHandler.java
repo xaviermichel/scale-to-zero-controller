@@ -1,11 +1,11 @@
 package io.neo9.scaler.access.controllers.tcp;
 
-import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
+import io.neo9.scaler.access.models.UpscalingContext;
 import io.neo9.scaler.access.services.UpscalerTcpProxyService;
 import io.neo9.scaler.access.utils.network.TcpServerProxyHandler;
 import io.netty.bootstrap.ServerBootstrap;
@@ -67,8 +67,9 @@ public class DynamicRequestHandler {
 									}
 								});
 						try {
-							InetSocketAddress clientRecipient = upscalerTcpProxyService.forwardRequest(ctx.localAddress(), ctx.remoteAddress());
-							ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(clientRecipient));
+							UpscalingContext upscalingContext = new UpscalingContext();
+							upscalingContext = upscalerTcpProxyService.forwardRequest(upscalingContext, ctx.localAddress(), ctx.remoteAddress());
+							ctx.pipeline().addLast("ssTcpProxy", new TcpServerProxyHandler(upscalingContext.getProxyTargetAddress()));
 						}
 						catch (InterruptedProxyForwardException interruptedProxyForwardException) {
 							log.warn("Failed to forward request : {}", interruptedProxyForwardException.getMessage(), interruptedProxyForwardException);

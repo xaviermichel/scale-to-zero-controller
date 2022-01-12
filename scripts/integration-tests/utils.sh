@@ -16,6 +16,22 @@ function checkIfPatternPresent() {
     fi
 }
 
+function checkIfPatternPresentVerbose() {
+    ingress=$1
+    hostHeader=$2
+    pattern=$3
+    output=$(curl -v --max-time 120 $ingress -H "Host: $hostHeader" 2>&1)
+    if echo "$output" | grep -q "$pattern";then
+        echo "assertion ok"
+    else
+        echo "Unexpected value for url ${ingress} with host ${hostHeader}"
+        echo "${output}"
+        echo "===="
+        echo "${pattern}"
+        exit 1
+    fi
+}
+
 function checkReplicaCount() {
     deploymentKind=$1
     deploymentNamespace=$2

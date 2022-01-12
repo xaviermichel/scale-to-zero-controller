@@ -26,7 +26,11 @@ public class KubernetesUtils {
 
 	@Nullable
 	public static String getAnnotationValue(String key, HasMetadata hasMetadata) {
-		return hasMetadata.getMetadata().getAnnotations().get(key);
+		Map<String, String> annotations = hasMetadata.getMetadata().getAnnotations();
+		if (annotations == null) {
+			return null;
+		}
+		return annotations.get(key);
 	}
 
 	public static String getLabelValue(String key, HasMetadata hasMetadata, String defaultValue) {
