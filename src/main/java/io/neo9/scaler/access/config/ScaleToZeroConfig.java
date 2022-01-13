@@ -1,5 +1,6 @@
 package io.neo9.scaler.access.config;
 
+import java.util.List;
 import java.util.Set;
 
 import lombok.Getter;
@@ -12,8 +13,18 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "scaler")
 public class ScaleToZeroConfig {
 
-	@Setter
 	@Getter
+	@Setter
 	private Set<String> applicationIdentifierLabels;
 
+	@Getter
+	@Setter
+	private String publicUrl;
+
+	@Setter
+	private List<EnvNameMatcher> envNameMatchers;
+
+	public List<EnvNameMatcher> envNameMatchers() {
+		return envNameMatchers;
+	}
 }

@@ -71,6 +71,7 @@ Additional features
 You can **specify additional (dependencies) workload to scale up on request**. For example, when the workload A starts, it will trigger the workload A startup.
 To do this, you need to annotate the source (A) workload with : `scaling.neo9.io/before-scale-requirements: "name-of-workload-b"`. Indeed, the B workload must have the scaling label (`scaling.neo9.io/is-scalable: "true"`).
 
+You can also enable a waiting (**splash screen**) by annotating your workload with `scaling.neo9.io/show-splash-screen: "true"`.
 
 Concepts
 --------

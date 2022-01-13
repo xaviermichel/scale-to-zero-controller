@@ -1,5 +1,6 @@
 package io.neo9.scaler.access.repositories;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,9 +23,9 @@ public class DeploymentRepository {
 	public Optional<Deployment> findOne(String namespace, String name) {
 		return Optional.ofNullable(
 				kubernetesClient.apps().deployments()
-					.inNamespace(namespace)
-					.withName(name)
-					.get()
+						.inNamespace(namespace)
+						.withName(name)
+						.get()
 		);
 	}
 
@@ -43,4 +44,12 @@ public class DeploymentRepository {
 				.withName(deployment.getMetadata().getName())
 				.scale(count, wait);
 	}
+
+	public List<Deployment> findAllInNamespace(String namespace, Map<String, String> filteringLabels) {
+		return kubernetesClient.apps().deployments()
+				.inNamespace(namespace)
+				.withLabels(filteringLabels)
+				.list().getItems();
+	}
+
 }

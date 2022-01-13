@@ -63,7 +63,7 @@ public class TcpServerProxyHandler extends SimpleChannelInboundHandler<ByteBuf> 
 					.handler(
 							new ChannelInitializer<>() {
 								@Override
-								protected void initChannel(Channel ch) throws Exception {
+								protected void initChannel(Channel ch) {
 									ch.pipeline()
 											.addLast("timeout", new IdleStateHandler(0, 0, 300, TimeUnit.SECONDS) {
 												@Override

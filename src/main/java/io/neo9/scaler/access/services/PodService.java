@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.Pod;
-import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
 import io.neo9.scaler.access.repositories.PodRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +19,9 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 @Slf4j
 public class PodService {
 
-	private final ScaleToZeroConfig scaleToZeroConfig;
-
 	private final PodRepository podRepository;
 
-	public PodService(ScaleToZeroConfig scaleToZeroConfig, PodRepository podRepository) {
-		this.scaleToZeroConfig = scaleToZeroConfig;
+	public PodService(PodRepository podRepository) {
 		this.podRepository = podRepository;
 	}
 
@@ -58,4 +54,13 @@ public class PodService {
 		return futureTargetPod;
 	}
 
+	public boolean isStarted(Pod pod) {
+		return pod.getStatus().getContainerStatuses().stream()
+				.anyMatch(cs -> cs.getStarted());
+	}
+
+	public boolean isReady(Pod pod) {
+		return pod.getStatus().getContainerStatuses().stream()
+				.allMatch(cs -> cs.getReady());
+	}
 }

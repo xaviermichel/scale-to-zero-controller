@@ -26,6 +26,12 @@ service:
   labels:
     scaling.neo9.io/is-scaler: "true"
 
+ingress:
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    external-dns.alpha.kubernetes.io/ttl: "5"
+    nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32,127.0.0.0/8
+
 clusterrole:
   enabled: true
   autoBindClusteRole: true

@@ -8,8 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import static io.neo9.scaler.access.config.Commons.TRUE;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
-import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_VALUE;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
 
 @Component
@@ -23,7 +23,7 @@ public class ApplicationsEndpointSliceController extends ReconnectableSingleWatc
 				/* watch what */
 				kubernetesClient.discovery().v1beta1().endpointSlices()
 						.inAnyNamespace()
-						.withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, IS_ALLOWED_TO_SCALE_LABEL_VALUE),
+						.withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE),
 				/* on event */
 				(action, endpointSlice) -> {
 					String endpointNamespaceAndName = getResourceNamespaceAndName(endpointSlice);

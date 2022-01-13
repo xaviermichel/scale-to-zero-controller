@@ -39,7 +39,7 @@ jobs:
       uses: ishworkh/docker-image-artifact-download@v1
       with:
         image: "docker.io/neo9sas/scale-to-zero-controller:latest"
-    - uses: debianmaster/actions-k3s@master
+    - uses: xaviermichel/actions-k3s@master
       id: k3s
       with:
         version: ${{ matrix.k8s_version }}
@@ -98,7 +98,7 @@ jobs:
         uses: ishworkh/docker-image-artifact-download@v1
         with:
           image: "docker.io/neo9sas/scale-to-zero-controller:latest"
-      - uses: debianmaster/actions-k3s@master
+      - uses: xaviermichel/actions-k3s@master
         id: k3s
         with:
           version: ${{ matrix.k8s_version }}
