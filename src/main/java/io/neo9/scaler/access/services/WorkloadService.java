@@ -3,27 +3,19 @@ package io.neo9.scaler.access.services;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
-import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
-import io.neo9.scaler.access.exceptions.MissingLabelException;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
-import io.neo9.scaler.access.repositories.PodRepository;
 import io.neo9.scaler.access.repositories.StatefulsetRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
-
-import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelsValues;
-import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 @Service
 @Slf4j
@@ -37,14 +29,11 @@ public class WorkloadService {
 
 	private final PodService podService;
 
-	private final PodRepository podRepository;
-
-	public WorkloadService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService, PodRepository podRepository) {
+	public WorkloadService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService) {
 		this.scaleToZeroConfig = scaleToZeroConfig;
 		this.deploymentRepository = deploymentRepository;
 		this.statefulsetRepository = statefulsetRepository;
 		this.podService = podService;
-		this.podRepository = podRepository;
 	}
 
 	@Nullable
@@ -62,15 +51,6 @@ public class WorkloadService {
 		return ObjectUtils.firstNonNull(deploymentOpt.orElse(null), statefulSetOpt.orElse(null));
 	}
 
-	public Map<String, String> getWorkloadIdentifierLabels(HasMetadata hasMetadata) {
-		try {
-			return getLabelsValues(hasMetadata, scaleToZeroConfig.getApplicationIdentifierLabels());
-		}
-		catch (MissingLabelException e) {
-			throw new InterruptedProxyForwardException(String.format("missing app identifier label on source %s : %s, aborting", getResourceNamespaceAndName(hasMetadata), scaleToZeroConfig.getApplicationIdentifierLabels()), e);
-		}
-	}
-
 	/**
 	 * wait for :
 	 * * all pods in case of statefulset
@@ -78,14 +58,11 @@ public class WorkloadService {
 	 */
 	public Pod waitForWorkloadToBeReady(HasMetadata hasMetadata) {
 		boolean isWorkloadStateful = hasMetadata.getKind().equals(new StatefulSet().getKind());
-		return podService.waitForMatchingPodInReadyState(hasMetadata.getMetadata().getNamespace(), getWorkloadIdentifierLabels(hasMetadata), 300, isWorkloadStateful);
+		return podService.waitForMatchingPodInReadyState(hasMetadata, 300, isWorkloadStateful);
 	}
 
 	public boolean isStarted(HasMetadata hasMetadata) {
-		List<Pod> pods = podRepository.findAllWithLabels(hasMetadata.getMetadata().getNamespace(), getWorkloadIdentifierLabels(hasMetadata))
-				.stream().filter(pod -> isEmpty(pod.getMetadata().getDeletionTimestamp()))
-				.collect(Collectors.toList());
-
+		List<Pod> pods = podService.listPodsAssociatedToWorkload(hasMetadata);
 		if (pods.isEmpty()) {
 			return false;
 		}
@@ -94,10 +71,7 @@ public class WorkloadService {
 	}
 
 	public boolean isReady(HasMetadata hasMetadata) {
-		List<Pod> pods = podRepository.findAllWithLabels(hasMetadata.getMetadata().getNamespace(), getWorkloadIdentifierLabels(hasMetadata))
-				.stream().filter(pod -> isEmpty(pod.getMetadata().getDeletionTimestamp()))
-				.collect(Collectors.toList());
-
+		List<Pod> pods = podService.listPodsAssociatedToWorkload(hasMetadata);
 		if (pods.isEmpty()) {
 			return false;
 		}

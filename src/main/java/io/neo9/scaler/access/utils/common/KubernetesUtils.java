@@ -7,10 +7,12 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
 import io.neo9.scaler.access.exceptions.MissingLabelException;
 import lombok.experimental.UtilityClass;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.springframework.util.StringUtils.uncapitalize;
 
 @UtilityClass
@@ -66,6 +68,25 @@ public class KubernetesUtils {
 			labels.put(labelKey, sourceLabelValue);
 		}
 		return labels;
+	}
+
+	public static boolean haveAnyAnnotation(HasMetadata hasMetadata, Set<String> annotationsKeys) {
+		for (String annotationKey : annotationsKeys) {
+			String sourceAnnotationValue = getAnnotationValue(annotationKey, hasMetadata);
+			if (isNotEmpty(sourceAnnotationValue)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static Map<String, String> getWorkloadIdentifierLabels(HasMetadata hasMetadata, Set<String> applicationIdentifierLabels) {
+		try {
+			return getLabelsValues(hasMetadata, applicationIdentifierLabels);
+		}
+		catch (MissingLabelException e) {
+			throw new InterruptedProxyForwardException(String.format("missing app identifier label on source %s : %s, aborting", getResourceNamespaceAndName(hasMetadata), applicationIdentifierLabels), e);
+		}
 	}
 
 }

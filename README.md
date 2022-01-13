@@ -86,7 +86,18 @@ Downscaling and Upscaling technicals actions are detailed bellow.
 
 ### Downscaling
 
-Work in progress, there is no auto-downscaling for the moment. On manual downscale, the following behaviour is applied.
+The goal is to be able to handle multiple downscale strategies.
+
+#### With kube downscaler
+
+To come
+
+#### Base on activity logs
+
+If the workload is annotated with `scaling.neo9.io/scale-down-after-log-activity-delay-in-minutes`, the specified interval will be used to downscale the workload is the log is empty for the given window.
+Note that you can exclude some pattern from log (healthcheck for example) with `scaling.neo9.io/scale-down-exclude-log-activity`.
+
+#### Behaviour
 
 When a deployment have 0 replicas and is labelized for deployment, the controller proceed to a hijack of the traffic which would be at destination of this deployment.
 

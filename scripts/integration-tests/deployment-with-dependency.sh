@@ -6,7 +6,7 @@
 
 checkIfPatternPresent "http://127.0.0.1:18899" "nginx-with-dependency.dev-xmichel.neokube.neo9.pro" "Thank you for using nginx"
 
-# scale down (not automatized yet)
+# scale down (manual for faster tests)
 kubectl ${kubeContextArgs} -n default scale --replicas=0 deployment/nginx-with-dependency
 kubectl ${kubeContextArgs} -n default scale --replicas=0 statefulset/echoserver-statefulset
 sleep 10

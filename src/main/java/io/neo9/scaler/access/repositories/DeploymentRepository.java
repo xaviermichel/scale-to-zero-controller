@@ -52,4 +52,10 @@ public class DeploymentRepository {
 				.list().getItems();
 	}
 
+	public List<Deployment> findAllInAnyNamespace(Map<String, String> filteringLabels) {
+		return kubernetesClient.apps().deployments()
+				.inAnyNamespace()
+				.withLabels(filteringLabels)
+				.list().getItems();
+	}
 }

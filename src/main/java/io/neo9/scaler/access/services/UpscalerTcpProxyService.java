@@ -9,6 +9,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
 import io.neo9.scaler.access.models.UpscalingContext;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
@@ -32,6 +33,7 @@ import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getAnnotationValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getWorkloadIdentifierLabels;
 import static io.neo9.scaler.access.utils.common.StringUtils.COMMA;
 import static io.neo9.scaler.access.utils.common.StringUtils.EMPTY;
 import static java.util.Arrays.stream;
@@ -56,13 +58,16 @@ public class UpscalerTcpProxyService {
 	@Value("${server.port}")
 	private int serverPort;
 
-	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, WorkloadService workloadService, PodService podService) {
+	private final ScaleToZeroConfig scaleToZeroConfig;
+
+	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, WorkloadService workloadService, PodService podService, ScaleToZeroConfig scaleToZeroConfig) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
 		this.deploymentRepository = deploymentRepository;
 		this.statefulsetRepository = statefulsetRepository;
 		this.workloadService = workloadService;
 		this.podService = podService;
+		this.scaleToZeroConfig = scaleToZeroConfig;
 	}
 
 	/**
@@ -76,7 +81,7 @@ public class UpscalerTcpProxyService {
 		String serviceNamespaceAndName = getResourceNamespaceAndName(targetedService);
 		log.debug("checking if workload behind {} [{}] have to upscale", serviceNamespaceAndName, targetedService.getSpec().getClusterIP());
 
-		Map<String, String> applicationsIdentifierLabels = workloadService.getWorkloadIdentifierLabels(targetedService);
+		Map<String, String> applicationsIdentifierLabels = getWorkloadIdentifierLabels(targetedService, scaleToZeroConfig.getApplicationIdentifierLabels());
 
 		HasMetadata workloadToScale = workloadService.getWorkload(targetedService.getMetadata().getNamespace(), applicationsIdentifierLabels);
 		if (workloadToScale == null) {
