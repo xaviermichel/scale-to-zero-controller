@@ -72,7 +72,7 @@ public class KubernetesUtils {
 
 	public static boolean haveAnyAnnotation(HasMetadata hasMetadata, Set<String> annotationsKeys) {
 		for (String annotationKey : annotationsKeys) {
-			String sourceAnnotationValue = getLabelValue(annotationKey, hasMetadata);
+			String sourceAnnotationValue = getAnnotationValue(annotationKey, hasMetadata);
 			if (isNotEmpty(sourceAnnotationValue)) {
 				return true;
 			}
