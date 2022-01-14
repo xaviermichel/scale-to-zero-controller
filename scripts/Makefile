@@ -31,4 +31,11 @@ start-controller:
 	if [ ! -z "$(CLUSTER_KUBE_CONTEXT)" ]; then kubeContextArgs="--context=$(CLUSTER_KUBE_CONTEXT)"; fi
 	kubectl ${kubeContextArgs} apply -f controller-deployment/
 
+local-cluster-update-controller:
+	cd .. && NATIVE_IMAGE=false ./gradlew bootBuildImage && cd scripts
+	make import-image-in-k3s
+	kubeContextArgs=
+	if [ ! -z "$(CLUSTER_KUBE_CONTEXT)" ]; then kubeContextArgs="--context=$(CLUSTER_KUBE_CONTEXT)"; fi
+	kubectl ${kubeContextArgs} -n scale-to-zero-controller rollout restart deploy/scale-to-zero-controller-n9-api
+
 full-local-integration-tests-run: setup-k3s-for-test start-controller run-integration-tests stop-k3s-for-test

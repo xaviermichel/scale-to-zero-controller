@@ -23,6 +23,9 @@ for f in $(ls ../example-conf/); do
 done
 
 
+waitForPodReady default app-with-log-downscale
+checkReplicaCount "deployment" "default" "app-with-log-downscale" "1"
+
 waitForPodReady default echoserver-deployment
 checkReplicaCount "deployment" "default" "echoserver-deployment" "1"
 for i in $(seq 3); do # the test will be played multiple time
@@ -51,3 +54,4 @@ waitForPodReady default nginx-privileged
 waitForPodReady default app-with-splash-screen
 . ./integration-tests/deployment-with-splash-screen.sh
 
+. ./integration-tests/app-with-log-downscale.sh

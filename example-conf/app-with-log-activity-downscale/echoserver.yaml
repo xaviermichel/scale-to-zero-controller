@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-log-downscale
+  namespace: default
+  labels:
+    app.kubernetes.io/name: "app-with-log-downscale"
+    app.kubernetes.io/instance: "app-with-log-downscale"
+    scaling.neo9.io/is-scalable: "true"
+  annotations:
+    scaling.neo9.io/scale-down-after-log-activity-delay-in-minutes: "1"
+    scaling.neo9.io/scale-down-exclude-log-activity: "GET /health.*"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "app-with-log-downscale"
+      app.kubernetes.io/instance: "app-with-log-downscale"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: "app-with-log-downscale"
+        app.kubernetes.io/instance: "app-with-log-downscale"
+    spec:
+      containers:
+        - name: echoserver
+          image: k8s.gcr.io/echoserver:1.4
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-with-log-downscale
+  namespace: default
+  labels:
+    app.kubernetes.io/name: "app-with-log-downscale"
+    app.kubernetes.io/instance: "app-with-log-downscale"
+    scaling.neo9.io/is-scalable: "true"
+spec:
+  selector:
+    app.kubernetes.io/name: "app-with-log-downscale"
+    app.kubernetes.io/instance: "app-with-log-downscale"
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32,127.0.0.0/8
+  name: app-with-log-downscale
+spec:
+  rules:
+  - host: app-with-log-downscale.dev-xmichel.neokube.neo9.pro
+    http:
+      paths:
+      - backend:
+          service:
+            name: app-with-log-downscale
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix

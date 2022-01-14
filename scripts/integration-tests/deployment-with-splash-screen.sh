@@ -6,7 +6,7 @@
 
 checkIfPatternPresentVerbose "http://127.0.0.1:18899" "app-with-splash-screen.default.neokube.neo9.pro" "app-with-splash-screen.default.neokube.neo9.pro"
 
-# scale down (not automatized yet)
+# scale down (manual for faster tests)
 kubectl ${kubeContextArgs} -n default scale --replicas=0 statefulset/app-with-splash-screen
 sleep 10
 checkReplicaCount "statefulset" "default" "app-with-splash-screen" "0"
