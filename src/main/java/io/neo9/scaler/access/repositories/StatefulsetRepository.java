@@ -51,4 +51,11 @@ public class StatefulsetRepository {
 				.withLabels(filteringLabels)
 				.list().getItems();
 	}
+
+	public List<StatefulSet> findAllInAnyNamespace(Map<String, String> filteringLabels) {
+		return kubernetesClient.apps().statefulSets()
+				.inAnyNamespace()
+				.withLabels(filteringLabels)
+				.list().getItems();
+	}
 }

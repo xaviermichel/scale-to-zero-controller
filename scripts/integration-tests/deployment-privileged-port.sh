@@ -6,7 +6,7 @@
 
 checkIfPatternPresent "http://127.0.0.1:18899" "nginx-privileged.dev-xmichel.neokube.neo9.pro" "Thank you for using nginx"
 
-# scale down (not automatized yet)
+# scale down (manual for faster tests)
 kubectl ${kubeContextArgs} -n default scale --replicas=0 deployment/nginx-privileged
 sleep 10
 checkReplicaCount "deployment" "default" "nginx-privileged" "0"

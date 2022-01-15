@@ -63,4 +63,13 @@ public class PodRepository {
 		}
 		return EMPTY;
 	}
+
+	public String getLogsSince(Pod pod, int sinceMinutes) {
+		return kubernetesClient.pods()
+				.inNamespace(pod.getMetadata().getNamespace())
+				.withName(pod.getMetadata().getName())
+				.usingTimestamps()
+				.sinceSeconds(sinceMinutes * 60)
+				.getLog();
+	}
 }
