@@ -11,7 +11,7 @@ metadata:
     # will upscale the stateful set while serving the request
     scaling.neo9.io/before-scale-requirements: "echoserver-statefulset"
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: "nginx-with-dependency"

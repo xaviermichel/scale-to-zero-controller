@@ -3,6 +3,10 @@ image:
   pullPolicy: Always
   tag: latest
 
+deployment:
+  annotations:
+    downscaler/exclude: "true"
+
 pod:
   extraEnvMap:
     LOGGING_LEVEL_IO_NEO9_SCALER: INFO

@@ -1,14 +1,11 @@
 #!/bin/bash
 
-#
-# echoserver-statefulset
-#
+box $1
 
 checkIfPatternPresent "http://127.0.0.1:18899" "echoserver-statefulset.dev-xmichel.neokube.neo9.pro" "echoserver-statefulset.dev-xmichel.neokube.neo9.pro"
 
 # scale down (manual for faster tests)
-kubectl ${kubeContextArgs} -n default scale --replicas=0 statefulset/echoserver-statefulset
-sleep 10
+manualScaleDownAsControllerBehaviour "statefulset" "default" "echoserver-statefulset"
 checkReplicaCount "statefulset" "default" "echoserver-statefulset" "0"
 
 # scale up on request

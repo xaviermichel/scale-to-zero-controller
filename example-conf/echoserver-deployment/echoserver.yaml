@@ -12,7 +12,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: "echoserver-deployment"
       app.kubernetes.io/instance: "echoserver-deployment"
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       labels:

@@ -90,11 +90,16 @@ The goal is to be able to handle multiple downscale strategies.
 
 #### With kube downscaler
 
-To come
+[Kube downscaler](https://codeberg.org/hjacobs/kube-downscaler) is a good way do periodically downscale your workloads. This controller will prevent 
+kube downscaler to re-up.
+
+In others words, the dowscale part is handled by Kube downscaler and the upscale part by this controller.
 
 #### Base on activity logs
 
-If the workload is annotated with `scaling.neo9.io/scale-down-after-log-activity-delay-in-minutes`, the specified interval will be used to downscale the workload is the log is empty for the given window.
+If the workload is annotated with `scaling.neo9.io/scale-down-after-log-activity-delay-in-minutes`, the specified interval 
+will be used to downscale the workload is the log is empty for the given window.
+
 Note that you can exclude some pattern from log (healthcheck for example) with `scaling.neo9.io/scale-down-exclude-log-activity`.
 
 #### Behaviour
@@ -114,8 +119,10 @@ Similar projects
 ----------------
 
 This project is similar to [osiris](https://github.com/dailymotion-oss/osiris) and [knative](https://knative.dev/) but wants to :
-* only focus on upscale for http event
+* only handle upscale for http event
 * focus on layer 4
 * uses `endpointslice` instead of `endpoints`
 * not need root access in pods
 * do not inject custom proxy
+* be transparent as possible (only annotation driven behaviour)
+

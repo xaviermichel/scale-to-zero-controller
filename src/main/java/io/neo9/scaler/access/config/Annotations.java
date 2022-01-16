@@ -16,4 +16,6 @@ public class Annotations {
 	public static final String DOWNSCALE_LOG_STRATEGY_EXCLUDE_PATTERN = "scaling.neo9.io/scale-down-exclude-log-activity";
 
 	public static final Set<String> ALL_DOWNSCALE_STRATEGY = Set.of(DOWNSCALE_LOG_STRATEGY);
+
+	public static final String ORIGINAL_REPLICA = "scaling.neo9.io/original-replicas";
 }

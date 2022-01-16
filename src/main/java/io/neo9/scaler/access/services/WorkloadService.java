@@ -8,7 +8,9 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.neo9.scaler.access.config.Annotations;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
+import io.neo9.scaler.access.exceptions.NotHandledWorkloadException;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
 import io.neo9.scaler.access.repositories.StatefulsetRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,10 @@ import org.apache.commons.lang3.ObjectUtils;
 
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getAnnotationValue;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Service
 @Slf4j
@@ -49,6 +55,70 @@ public class WorkloadService {
 		Optional<StatefulSet> statefulSetOpt = statefulsetRepository.findOne(namespace, workloadName);
 
 		return ObjectUtils.firstNonNull(deploymentOpt.orElse(null), statefulSetOpt.orElse(null));
+	}
+
+	public HasMetadata annotate(HasMetadata workload, Map<String, String> annotations) {
+		if (workload.getKind().equals(new Deployment().getKind())) {
+			Deployment deployment = (Deployment) workload;
+			return deploymentRepository.addToAnnotations(deployment, annotations);
+		}
+		else if (workload.getKind().equals(new StatefulSet().getKind())) {
+			StatefulSet statefulSet = (StatefulSet) workload;
+			return statefulsetRepository.addToAnnotations(statefulSet, annotations);
+		}
+		throw new NotHandledWorkloadException(String.format("could not identify workload to annotate : %s", getResourceNamespaceAndName(workload)));
+	}
+
+	public HasMetadata unannotated(HasMetadata workload, List<String> annotations) {
+		if (workload.getKind().equals(new Deployment().getKind())) {
+			Deployment deployment = (Deployment) workload;
+			return deploymentRepository.removeFromAnnotations(deployment, annotations);
+		}
+		else if (workload.getKind().equals(new StatefulSet().getKind())) {
+			StatefulSet statefulSet = (StatefulSet) workload;
+			return statefulsetRepository.removeFromAnnotations(statefulSet, annotations);
+		}
+		throw new NotHandledWorkloadException(String.format("could not identify workload to unannotated : %s", getResourceNamespaceAndName(workload)));
+	}
+
+	public Integer getReplicaCount(HasMetadata workload) {
+		if (workload.getKind().equals(new Deployment().getKind())) {
+			Deployment deployment = (Deployment) workload;
+			return deployment.getSpec().getReplicas();
+		}
+		else if (workload.getKind().equals(new StatefulSet().getKind())) {
+			StatefulSet statefulSet = (StatefulSet) workload;
+			return statefulSet.getSpec().getReplicas();
+		}
+		throw new NotHandledWorkloadException(String.format("could not identify workload to get replica count : %s", getResourceNamespaceAndName(workload)));
+	}
+
+	public Integer getOriginalReplicaCount(HasMetadata workload) {
+		String controllerOriginalReplica = getAnnotationValue(Annotations.ORIGINAL_REPLICA, workload);
+		if (isNotBlank(controllerOriginalReplica)) {
+			return Integer.parseInt(controllerOriginalReplica);
+		}
+
+		for (String candidateAnnotation : scaleToZeroConfig.getOnUpscaleFallbackOriginalReplicasAnnotations()) {
+			String candidateValue = getAnnotationValue(candidateAnnotation, workload);
+			if (isNotBlank(candidateValue)) {
+				return Integer.parseInt(candidateValue);
+			}
+		}
+
+		return scaleToZeroConfig.getDefaultOnUpscaleReplicaCount();
+	}
+
+	public HasMetadata scale(HasMetadata workloadToScale, int replicaCount, boolean wait) {
+		if (workloadToScale.getKind().equals(new Deployment().getKind())) {
+			Deployment deployment = (Deployment) workloadToScale;
+			return deploymentRepository.scale(deployment, replicaCount, wait);
+		}
+		else if (workloadToScale.getKind().equals(new StatefulSet().getKind())) {
+			StatefulSet statefulSet = (StatefulSet) workloadToScale;
+			return statefulsetRepository.scale(statefulSet, replicaCount, wait);
+		}
+		throw new NotHandledWorkloadException(String.format("could not identify workload to scale down : %s", getResourceNamespaceAndName(workloadToScale)));
 	}
 
 	/**

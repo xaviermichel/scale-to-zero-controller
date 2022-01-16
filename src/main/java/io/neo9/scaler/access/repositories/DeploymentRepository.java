@@ -5,10 +5,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
+
+import static io.neo9.scaler.access.utils.common.StringUtils.EMPTY;
+import static java.util.stream.Collectors.toMap;
 
 @Component
 @Slf4j
@@ -57,5 +61,26 @@ public class DeploymentRepository {
 				.inAnyNamespace()
 				.withLabels(filteringLabels)
 				.list().getItems();
+	}
+
+	public Deployment addToAnnotations(Deployment deployment, Map<String, String> annotations) {
+		return kubernetesClient.apps().deployments()
+				.inNamespace(deployment.getMetadata().getNamespace())
+				.withName(deployment.getMetadata().getName())
+				.edit(d -> new DeploymentBuilder(d).editMetadata()
+						.addToAnnotations(annotations)
+						.endMetadata()
+						.build());
+	}
+
+	public Deployment removeFromAnnotations(Deployment deployment, List<String> annotationsKeys) {
+		Map<String, String> annotations = annotationsKeys.stream().collect(toMap(key -> key, key -> EMPTY));
+		return kubernetesClient.apps().deployments()
+				.inNamespace(deployment.getMetadata().getNamespace())
+				.withName(deployment.getMetadata().getName())
+				.edit(d -> new DeploymentBuilder(d).editMetadata()
+						.removeFromAnnotations(annotations)
+						.endMetadata()
+						.build());
 	}
 }

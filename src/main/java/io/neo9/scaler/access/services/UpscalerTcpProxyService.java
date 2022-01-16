@@ -7,8 +7,7 @@ import java.util.Optional;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.neo9.scaler.access.config.Annotations;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
 import io.neo9.scaler.access.models.UpscalingContext;
@@ -55,10 +54,10 @@ public class UpscalerTcpProxyService {
 
 	private final PodService podService;
 
+	private final ScaleToZeroConfig scaleToZeroConfig;
+
 	@Value("${server.port}")
 	private int serverPort;
-
-	private final ScaleToZeroConfig scaleToZeroConfig;
 
 	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, WorkloadService workloadService, PodService podService, ScaleToZeroConfig scaleToZeroConfig) {
 		this.podRepository = podRepository;
@@ -120,20 +119,9 @@ public class UpscalerTcpProxyService {
 	private Pod scaleUp(UpscalingContext context, HasMetadata workloadToScale, boolean waitForScaleFinished) {
 		handleBeforeScaleRequirements(context, workloadToScale);
 
-		if (workloadToScale.getKind().equals(new Deployment().getKind())) {
-			Deployment deployment = (Deployment) workloadToScale;
-			if (deployment.getSpec().getReplicas() == 0) {
-				deploymentRepository.scale(deployment, 2, !context.isLoadInBackgroundAndReturnSplashScreenForward()); // TODO : not always scale to 2
-			}
-		}
-		else if (workloadToScale.getKind().equals(new StatefulSet().getKind())) {
-			StatefulSet statefulSet = (StatefulSet) workloadToScale;
-			if (statefulSet.getSpec().getReplicas() == 0) {
-				statefulsetRepository.scale(statefulSet, 2, !context.isLoadInBackgroundAndReturnSplashScreenForward()); // TODO : not always scale to 2
-			}
-		}
-		else {
-			throw new InterruptedProxyForwardException(String.format("could not identify workload to scale up : %s", workloadToScale));
+		if (workloadService.getReplicaCount(workloadToScale) == 0) {
+			workloadService.scale(workloadToScale, workloadService.getOriginalReplicaCount(workloadToScale), !context.isLoadInBackgroundAndReturnSplashScreenForward());
+			workloadService.unannotated(workloadToScale, List.of(Annotations.ORIGINAL_REPLICA));
 		}
 
 		if (!waitForScaleFinished || context.isLoadInBackgroundAndReturnSplashScreenForward()) {

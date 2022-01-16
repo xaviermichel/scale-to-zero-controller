@@ -38,8 +38,11 @@ public class WorkloadHijackingService {
 		if (workloadService.isReady(hasMetadata)) {
 			log.info("releasing hijack on {}", getResourceNamespaceAndName(hasMetadata));
 			Map<String, String> appIdentifierLabels = getLabelsValues(hasMetadata, scaleToZeroConfig.getApplicationIdentifierLabels());
+
 			List<EndpointSlice> endpointSlicesOfDeployment = endpointSliceRepository.findAllWithLabels(hasMetadata.getMetadata().getNamespace(), appIdentifierLabels);
 			endpointSlicesOfDeployment.forEach(e -> endpointSliceHijackingService.releaseHijackedIfNecessary(e));
+
+			workloadService.unannotated(hasMetadata, scaleToZeroConfig.getOnReleaseAnnotationsToRemove());
 		}
 	}
 }

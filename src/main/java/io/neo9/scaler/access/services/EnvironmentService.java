@@ -71,7 +71,7 @@ public class EnvironmentService {
 	}
 
 	public String getEnvironmentNameFromHost(String envHost) {
-		for (EnvNameMatcher envNameMatcher : scaleToZeroConfig.envNameMatchers()) {
+		for (EnvNameMatcher envNameMatcher : scaleToZeroConfig.getEnvNameMatchers()) {
 			Pattern pattern = Pattern.compile(envNameMatcher.getRegex());
 			Matcher matcher = pattern.matcher(envHost);
 			if (matcher.find()) {

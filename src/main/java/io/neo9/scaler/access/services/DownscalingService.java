@@ -9,7 +9,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-import io.neo9.scaler.access.exceptions.InterruptedDownscaleException;
+import io.neo9.scaler.access.config.Annotations;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
 import io.neo9.scaler.access.repositories.StatefulsetRepository;
 import io.neo9.scaler.access.utils.common.KubernetesUtils;
@@ -87,28 +87,17 @@ public class DownscalingService {
 		}
 
 		if (shouldDownscale) {
-			log.info("downscaling {}", getResourceNamespaceAndName(workload));
 			scaleDown(workload);
 		}
 	}
 
-	public void scaleDown(HasMetadata workloadToScale) {
+	public HasMetadata scaleDown(HasMetadata workloadToScale) {
 		if (!workloadService.isStarted(workloadToScale)) {
-			return;
+			return workloadToScale;
 		}
 		log.info("going to scale down : {}", getResourceNamespaceAndName(workloadToScale));
-
-		if (workloadToScale.getKind().equals(new Deployment().getKind())) {
-			Deployment deployment = (Deployment) workloadToScale;
-			deploymentRepository.scale(deployment, 0, true);
-		}
-		else if (workloadToScale.getKind().equals(new StatefulSet().getKind())) {
-			StatefulSet statefulSet = (StatefulSet) workloadToScale;
-			statefulsetRepository.scale(statefulSet, 0, true);
-		}
-		else {
-			throw new InterruptedDownscaleException(String.format("could not identify workload to scale down : %s", workloadToScale));
-		}
+		workloadToScale = workloadService.annotate(workloadToScale, Map.of(Annotations.ORIGINAL_REPLICA, String.valueOf(workloadService.getReplicaCount(workloadToScale))));
+		return workloadService.scale(workloadToScale, 0, true);
 	}
 
 }

@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointPort;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointPortBuilder;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
+import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.controllers.tcp.DynamicRequestHandler;
 import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
@@ -24,13 +25,14 @@ import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_KEY;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getWorkloadIdentifierLabels;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Service
 @Slf4j
 public class EndpointSliceHijackingService {
 
-	private final static String ENPOINT_SLICE_ADDRESS_TYPE_IPV4 = "IPv4";
+	private final static String ENDPOINT_SLICE_ADDRESS_TYPE_IPV4 = "IPv4";
 
 	// not trivial, dynamically starts tcp handlers on the right port when a deployment is scaled to 0
 	private final DynamicRequestHandler dynamicRequestHandler;
@@ -39,14 +41,20 @@ public class EndpointSliceHijackingService {
 
 	private final ServiceRepository serviceRepository;
 
-	public EndpointSliceHijackingService(DynamicRequestHandler dynamicRequestHandler, EndpointSliceRepository endpointSliceRepository, ServiceRepository serviceRepository) {
+	private final ScaleToZeroConfig scaleToZeroConfig;
+
+	private final WorkloadService workloadService;
+
+	public EndpointSliceHijackingService(DynamicRequestHandler dynamicRequestHandler, EndpointSliceRepository endpointSliceRepository, ServiceRepository serviceRepository, ScaleToZeroConfig scaleToZeroConfig, WorkloadService workloadService) {
 		this.dynamicRequestHandler = dynamicRequestHandler;
 		this.endpointSliceRepository = endpointSliceRepository;
 		this.serviceRepository = serviceRepository;
+		this.scaleToZeroConfig = scaleToZeroConfig;
+		this.workloadService = workloadService;
 	}
 
 	private boolean isIPV4EndpointSlice(EndpointSlice appEndpointSlice) {
-		return ENPOINT_SLICE_ADDRESS_TYPE_IPV4.equals(appEndpointSlice.getAddressType());
+		return ENDPOINT_SLICE_ADDRESS_TYPE_IPV4.equals(appEndpointSlice.getAddressType());
 	}
 
 	public void hijackIfNecessary(EndpointSlice appEndpointSlice) {
@@ -92,6 +100,9 @@ public class EndpointSliceHijackingService {
 			appEndpointSlice.getMetadata().getLabels().put(ENDPOINT_SLICE_MANAGED_BY_KEY, ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE);
 
 			endpointSliceRepository.patch(appEndpointSlice);
+
+			Map<String, String> applicationsIdentifierLabels = getWorkloadIdentifierLabels(appEndpointSlice, scaleToZeroConfig.getApplicationIdentifierLabels());
+			workloadService.annotate(workloadService.getWorkload(appEndpointSlice.getMetadata().getNamespace(), applicationsIdentifierLabels), scaleToZeroConfig.getOnHijackAnnotationsToAdd());
 		}
 	}
 
