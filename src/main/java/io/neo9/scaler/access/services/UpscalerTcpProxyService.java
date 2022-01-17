@@ -46,10 +46,6 @@ public class UpscalerTcpProxyService {
 
 	private final ServiceRepository serviceRepository;
 
-	private final DeploymentRepository deploymentRepository;
-
-	private final StatefulsetRepository statefulsetRepository;
-
 	private final WorkloadService workloadService;
 
 	private final PodService podService;
@@ -59,11 +55,9 @@ public class UpscalerTcpProxyService {
 	@Value("${server.port}")
 	private int serverPort;
 
-	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, WorkloadService workloadService, PodService podService, ScaleToZeroConfig scaleToZeroConfig) {
+	public UpscalerTcpProxyService(PodRepository podRepository, ServiceRepository serviceRepository, WorkloadService workloadService, PodService podService, ScaleToZeroConfig scaleToZeroConfig) {
 		this.podRepository = podRepository;
 		this.serviceRepository = serviceRepository;
-		this.deploymentRepository = deploymentRepository;
-		this.statefulsetRepository = statefulsetRepository;
 		this.workloadService = workloadService;
 		this.podService = podService;
 		this.scaleToZeroConfig = scaleToZeroConfig;
@@ -186,6 +180,7 @@ public class UpscalerTcpProxyService {
 					Integer inode2 = Integer.parseInt(e2.getInode());
 					return inode2.compareTo(inode1); // reverse order !
 				})
+				.peek(e -> log.debug("one candidate was : {}", e))
 				.map(TcpTableEntry::getRemoteAddress)
 				.distinct()
 				// get source service
@@ -193,6 +188,7 @@ public class UpscalerTcpProxyService {
 				.filter(Optional::isPresent)
 				.map(Optional::get)
 				.filter(service -> TRUE.equals(getLabelValue(IS_ALLOWED_TO_SCALE_LABEL_KEY, service)))
+				.filter(workloadService::isHijacked)
 				.collect(toList());
 
 		if (log.isDebugEnabled()) {

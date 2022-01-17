@@ -19,7 +19,21 @@ public class TcpTableEntry {
 
 	private String state;
 
+	private String transmitQueue;
+
+	private String receiveQueue;
+
+	private String timerActive;
+
+	private String jiffiesUntilTimerExpires;
+
 	private String uid;
 
+	private String unanswered0WindowProbes;
+
 	private String inode;
+
+	private String numberOfRTOTimeouts;
+
+	private String socketReferenceCount;
 }

@@ -23,7 +23,7 @@ public class TcpTableParser {
 					// 00000150:00000000 01:00000019 00000000
 					"([0-9A-F]+):([0-9A-F]+) (..):([0-9A-F]+) ([0-9A-F]+)\\s+" +
 					//1000        0 54165785 4 cd1e6040 25 4 27 3 -1
-					"(\\d+)\\s+\\d+\\s+(\\d+).*$"
+					"(\\d+)\\s+(\\d+) (\\d+) (\\d+).*$"
 	);
 
 	public static List<TcpTableEntry> parseTCPTable(String tcpTableOutput) {
@@ -47,8 +47,19 @@ public class TcpTableParser {
 			builder.remotePort(hexStringToBase10String(match.group(5)));
 			builder.state(hexStringToBase10String(match.group(6)));
 
+			builder.transmitQueue(hexStringToBase10String(match.group(7)));
+			builder.receiveQueue(hexStringToBase10String(match.group(8)));
+
+			builder.timerActive(match.group(9));
+			builder.jiffiesUntilTimerExpires(hexStringToBase10String(match.group(10)));
+
+			builder.numberOfRTOTimeouts(hexStringToBase10String(match.group(11)));
+
 			builder.uid(match.group(12));
-			builder.inode(match.group(13));
+			builder.unanswered0WindowProbes(match.group(13));
+			builder.inode(match.group(14));
+
+			builder.socketReferenceCount(match.group(15));
 
 			netstatEntries.add(builder.build());
 		}

@@ -22,10 +22,6 @@ for f in $(ls ../example-conf/); do
     kubectl ${kubeContextArgs} apply -f ../example-conf/$f
 done
 
-# should be up before downscale !
-waitForPodReady default app-with-log-downscale
-checkIfPatternPresent "http://127.0.0.1:18899" "app-with-log-downscale.dev-xmichel.neokube.neo9.pro" "app-with-log-downscale.dev-xmichel.neokube.neo9.pro"
-checkReplicaCount "deployment" "default" "app-with-log-downscale" "1"
 
 waitForPodReady default echoserver-deployment
 checkReplicaCount "deployment" "default" "echoserver-deployment" "2"
@@ -50,7 +46,6 @@ done
 waitForPodReady default nginx-privileged
 . ./integration-tests/deployment-privileged-port.sh "deployment-privileged-port"
 
-waitForPodReady default app-with-splash-screen
 . ./integration-tests/deployment-with-splash-screen.sh "deployment-with-splash-screen"
 
 . ./integration-tests/app-with-log-downscale.sh "app-with-log-downscale"

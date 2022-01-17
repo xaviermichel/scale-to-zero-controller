@@ -8,19 +8,26 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.neo9.scaler.access.config.Annotations;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.exceptions.NotHandledWorkloadException;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
+import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.StatefulsetRepository;
+import io.neo9.scaler.access.utils.common.KubernetesUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
+import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE;
+import static io.neo9.scaler.access.config.Labels.ENDPOINT_SLICE_MANAGED_BY_KEY;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getAnnotationValue;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getLabelValue;
 import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceNamespaceAndName;
+import static io.neo9.scaler.access.utils.common.KubernetesUtils.getWorkloadIdentifierLabels;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 @Service
@@ -35,11 +42,14 @@ public class WorkloadService {
 
 	private final PodService podService;
 
-	public WorkloadService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService) {
+	private final EndpointSliceRepository endpointSliceRepository;
+
+	public WorkloadService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService, EndpointSliceRepository endpointSliceRepository) {
 		this.scaleToZeroConfig = scaleToZeroConfig;
 		this.deploymentRepository = deploymentRepository;
 		this.statefulsetRepository = statefulsetRepository;
 		this.podService = podService;
+		this.endpointSliceRepository = endpointSliceRepository;
 	}
 
 	@Nullable
@@ -158,5 +168,12 @@ public class WorkloadService {
 
 		// at least one in other cases
 		return pods.stream().anyMatch(p -> podService.isReady(p));
+	}
+
+	public boolean isHijacked(HasMetadata hasMetadata) {
+		Map<String, String> appIdentifierLabels = getWorkloadIdentifierLabels(hasMetadata, scaleToZeroConfig.getApplicationIdentifierLabels());
+		List<EndpointSlice> endpointSlicesOfDeployment = endpointSliceRepository.findAllWithLabels(hasMetadata.getMetadata().getNamespace(), appIdentifierLabels);
+		log.info("endpoints : {}", endpointSlicesOfDeployment);
+		return endpointSlicesOfDeployment.stream().anyMatch(appEndpointSlice -> ENDPOINT_SLICE_MANAGED_BY_CUSTOM_CONTROLLER_VALUE.equals(getLabelValue(ENDPOINT_SLICE_MANAGED_BY_KEY, appEndpointSlice)));
 	}
 }

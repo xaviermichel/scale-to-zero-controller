@@ -11,7 +11,7 @@ function manualScaleDownAsControllerBehaviour() {
     replicas=$(kubectl ${kubeContextArgs} -n ${namespace} get ${kind} ${name} --no-headers -o=custom-columns=REPLICA:.spec.replicas)
     kubectl ${kubeContextArgs} -n ${namespace} scale --replicas=0 ${kind}/${name}
     kubectl ${kubeContextArgs} -n ${namespace} annotate --overwrite ${kind} ${name} scaling.neo9.io/original-replicas="${replicas}"
-    sleep 10
+    sleep 20
 }
 
 function checkIfPatternPresent() {
