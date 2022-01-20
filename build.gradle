@@ -62,7 +62,7 @@ test {
 bootBuildImage {
 	imageName   = "neo9sas/${project.name}:latest"
 	if (! buildNativeImage) {
-		builder     = 'paketobuildpacks/builder:base'
+		builder     = 'paketobuildpacks/builder:full'
 	} else {
 		builder		= 'paketobuildpacks/builder:tiny'
 		environment = [

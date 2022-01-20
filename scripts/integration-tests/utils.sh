@@ -51,7 +51,7 @@ function checkReplicaCount() {
     deploymentNamespace=$2
     deploymentName=$3
     expectation=$4
-    sleep 3
+    sleep 5
     replicas=$(kubectl ${kubeContextArgs} -n ${deploymentNamespace} get ${deploymentKind} ${deploymentName} --no-headers -o=custom-columns=REPLICA:.spec.replicas)
     if [ ${replicas} == ${expectation} ]; then
         echo "assertion ok"

@@ -12,6 +12,8 @@ import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointPortBuilder;
 import io.fabric8.kubernetes.api.model.discovery.v1beta1.EndpointSlice;
 import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.controllers.tcp.DynamicRequestHandler;
+import io.neo9.scaler.access.exceptions.InterruptedProxyForwardException;
+import io.neo9.scaler.access.exceptions.MissingLabelException;
 import io.neo9.scaler.access.repositories.EndpointSliceRepository;
 import io.neo9.scaler.access.repositories.ServiceRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -147,9 +149,14 @@ public class EndpointSliceHijackingService {
 
 	public void reconcileEndpointSliceWithNewControllerEndpointSlice() {
 		log.info("controller endpointslice changed, starting listeners update");
-		endpointSliceRepository
-				.findAllWithLabels(Map.of(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE))
-				.forEach(appEndpointSlice -> hijackIfNecessary(appEndpointSlice));
+		for (EndpointSlice appEndpointSlice : endpointSliceRepository.findAllWithLabels(Map.of(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE))) {
+			try {
+				hijackIfNecessary(appEndpointSlice);
+			}
+			catch (InterruptedProxyForwardException e) {
+				log.warn("skipping reconciliation of {}", getResourceNamespaceAndName(appEndpointSlice), e);
+			}
+		}
 		log.info("controller endpointslice changed, end of listeners update");
 	}
 }
