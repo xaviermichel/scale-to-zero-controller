@@ -53,5 +53,8 @@ public class TcpTableParserTest {
 		assertThat(tcpTableEntry.getLocalPort()).isEqualTo("60342");
 		assertThat(tcpTableEntry.getRemoteAddress()).isEqualTo("10.114.63.93");
 		assertThat(tcpTableEntry.getRemotePort()).isEqualTo("15012");
+		assertThat(tcpTableEntry.getTimerActive()).isEqualTo("02");
+		assertThat(tcpTableEntry.getJiffiesUntilTimerExpires()).isEqualTo("692");
+		assertThat(tcpTableEntry.getInode()).isEqualTo("661501");
 	}
 }

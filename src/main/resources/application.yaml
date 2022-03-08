@@ -24,11 +24,19 @@ javaoperatorsdk:
 
 scaler:
   applicationIdentifierLabels:
-    - app.kubernetes.io/name
-    - app.kubernetes.io/instance
+    - "app.kubernetes.io/name"
+    - "app.kubernetes.io/instance"
   # used for splash screen
   publicUrl: http://127.0.0.1:15099
   envNameMatchers:
     - regex: "^.*\\.(.*)\\.neokube\\.neo9\\.pro$"
       prefix: ""
       suffix: ""
+  onHijackAnnotationsToAdd: # this annotation will prevent auto upscale from kube downscaler
+    - key: "downscaler/exclude"
+      value: "true"
+  onReleaseAnnotationsToRemove: # this will give to kube downscaler the possibility to re-downscale this workload
+    - "downscaler/exclude"
+  onUpscaleFallbackOriginalReplicasAnnotations:
+    - "downscaler/original-replicas"
+  defaultOnUpscaleReplicaCount: 2

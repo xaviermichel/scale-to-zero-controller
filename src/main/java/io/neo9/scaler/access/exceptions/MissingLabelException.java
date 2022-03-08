@@ -6,8 +6,8 @@ import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceName
 
 public class MissingLabelException extends Exception {
 
-	public MissingLabelException(String label, HasMetadata hasMetadata) {
-		super(String.format("the label %s is missing on %s", label, getResourceNamespaceAndName(hasMetadata)));
-	}
+    public MissingLabelException(String label, HasMetadata hasMetadata) {
+        super(String.format("the label %s is missing on %s", label, getResourceNamespaceAndName(hasMetadata)));
+    }
 
 }

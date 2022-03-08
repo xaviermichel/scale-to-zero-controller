@@ -341,5 +341,6 @@
   {"name": "io.fabric8.kubernetes.client.dsl.internal.RawCustomResourceOperationsImpl$DelegateWatcher", "allDeclaredMethods": true, "allPublicConstructors": true},
   {"name": "io.fabric8.kubernetes.client.dsl.internal.RawCustomResourceOperationsImpl", "allDeclaredMethods": true, "allPublicConstructors": true},
   {"name": "io.neo9.scaler.access.configScaleToZeroConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.scaler.access.config.EnvNameMatcher", "allDeclaredMethods": true, "allPublicConstructors": true}
+  {"name": "io.neo9.scaler.access.config.EnvNameMatcher", "allDeclaredMethods": true, "allPublicConstructors": true},
+  {"name": "io.neo9.scaler.access.config.KeyValueWrapper", "allDeclaredMethods": true, "allPublicConstructors": true}
 ]

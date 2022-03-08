@@ -1,16 +1,13 @@
 #!/bin/bash
 
-#
-# app with priveged port
-#
+box $1
 
 checkIfPatternPresent "http://127.0.0.1:18899" "nginx-privileged.dev-xmichel.neokube.neo9.pro" "Thank you for using nginx"
 
 # scale down (manual for faster tests)
-kubectl ${kubeContextArgs} -n default scale --replicas=0 deployment/nginx-privileged
-sleep 10
+manualScaleDownAsControllerBehaviour "deployment" "default" "nginx-privileged"
 checkReplicaCount "deployment" "default" "nginx-privileged" "0"
 
 # scale up on request
 checkIfPatternPresent "http://127.0.0.1:18899" "nginx-privileged.dev-xmichel.neokube.neo9.pro" "Thank you for using nginx"
-checkReplicaCount "deployment" "default" "nginx-privileged" "2"
+checkReplicaCount "deployment" "default" "nginx-privileged" "1"

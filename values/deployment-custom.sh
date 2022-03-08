@@ -1,5 +1,8 @@
 #!/bin/bash
 
+docker tag neo9sas/scale-to-zero-controller:latest xaviermichel/scale-to-zero-controller:latest
+docker push xaviermichel/scale-to-zero-controller:latest
+
 helm repo add neo9charts https://charts.neo9.pro
 helm repo update
 

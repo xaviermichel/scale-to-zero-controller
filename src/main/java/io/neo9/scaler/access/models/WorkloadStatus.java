@@ -7,12 +7,12 @@ import lombok.Data;
 @Builder
 public class WorkloadStatus {
 
-	private String kind;
+    private String kind;
 
-	private String name;
+    private String name;
 
-	private Boolean isStarted;
+    private Boolean isStarted;
 
-	private Boolean isReady;
+    private Boolean isReady;
 
 }

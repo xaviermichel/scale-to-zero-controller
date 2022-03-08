@@ -11,7 +11,7 @@ metadata:
     # will upscale the stateful set while serving the request
     scaling.neo9.io/before-scale-requirements: "echoserver-statefulset"
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: "nginx-with-dependency"
@@ -61,6 +61,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: nginx-with-dependency.default
     nginx.ingress.kubernetes.io/whitelist-source-range: 52.47.163.232/32,127.0.0.0/8
   name: nginx-with-dependency
   namespace: default

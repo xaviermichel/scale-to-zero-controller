@@ -23,35 +23,34 @@ for f in $(ls ../example-conf/); do
 done
 
 
-waitForPodReady default app-with-log-downscale
-checkReplicaCount "deployment" "default" "app-with-log-downscale" "1"
-
 waitForPodReady default echoserver-deployment
-checkReplicaCount "deployment" "default" "echoserver-deployment" "1"
+checkReplicaCount "deployment" "default" "echoserver-deployment" "2"
 for i in $(seq 3); do # the test will be played multiple time
   echo "Running deployment test iteration #$i"
-  . ./integration-tests/deployment.sh
+  . ./integration-tests/deployment.sh "deployment"
 done
 
 
 waitForPodReady default echoserver-statefulset
-checkReplicaCount "statefulset" "default" "echoserver-statefulset" "1"
+checkReplicaCount "statefulset" "default" "echoserver-statefulset" "2"
 for i in $(seq 3); do # the test will be played multiple time
   echo "Running statefulset test iteration #$i"
-  . ./integration-tests/statefulset.sh
+  . ./integration-tests/statefulset.sh "statefulset"
 done
-
 
 for i in $(seq 3); do # the test will be played multiple time
   echo "Running deployment-with-dependency test iteration #$i"
-  . ./integration-tests/deployment-with-dependency.sh
+  . ./integration-tests/deployment-with-dependency.sh "deployment-with-dependency"
 done
 
-
 waitForPodReady default nginx-privileged
-. ./integration-tests/deployment-privileged-port.sh
+. ./integration-tests/deployment-privileged-port.sh "deployment-privileged-port"
 
-waitForPodReady default app-with-splash-screen
-. ./integration-tests/deployment-with-splash-screen.sh
+. ./integration-tests/deployment-with-splash-screen.sh "deployment-with-splash-screen"
 
-. ./integration-tests/app-with-log-downscale.sh
+. ./integration-tests/app-with-log-downscale.sh "app-with-log-downscale"
+
+. ./integration-tests/annotations-on-hijack-release.sh "annotations-on-hijack-release"
+
+. ./integration-tests/cooperation-with-kube-downscaler.sh "cooperation-with-kube-downscaler"
+

@@ -132,6 +132,8 @@ metadata:
     app.kubernetes.io/version: 0.9.0
     app.kubernetes.io/managed-by: Helm
     app: n9-api
+  annotations:
+    downscaler/exclude: "true"
 spec:
   progressDeadlineSeconds: 70
   replicas: 1

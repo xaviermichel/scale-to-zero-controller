@@ -60,8 +60,10 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: <service-name>.<service-namespace>
 [...]
 ```
+The upstream-vhost is override in order to have the same behaviour for internal and external service exchanges.
 
 That's all ! Deploy the controller (see `values/apply.sh` for an example of helm deployment), and you will have an on demand (traffic) scale for your app.
 
@@ -90,11 +92,16 @@ The goal is to be able to handle multiple downscale strategies.
 
 #### With kube downscaler
 
-To come
+[Kube downscaler](https://codeberg.org/hjacobs/kube-downscaler) is a good way do periodically downscale your workloads. This controller will prevent 
+kube downscaler to re-up.
+
+In others words, the dowscale part is handled by Kube downscaler and the upscale part by this controller.
 
 #### Base on activity logs
 
-If the workload is annotated with `scaling.neo9.io/scale-down-after-log-activity-delay-in-minutes`, the specified interval will be used to downscale the workload is the log is empty for the given window.
+If the workload is annotated with `scaling.neo9.io/scale-down-after-log-activity-delay-in-minutes`, the specified interval 
+will be used to downscale the workload is the log is empty for the given window.
+
 Note that you can exclude some pattern from log (healthcheck for example) with `scaling.neo9.io/scale-down-exclude-log-activity`.
 
 #### Behaviour
@@ -113,9 +120,11 @@ When the controller receive a request that is destined to a downscaled deploymen
 Similar projects
 ----------------
 
-This project is similar to [osiris](https://github.com/dailymotion-oss/osiris) and [knative](https://knative.dev/) but wants to :
-* only focus on upscale for http event
+This project is similar to [osiris](https://github.com/dailymotion-oss/osiris), [knative](https://knative.dev/), and/or [keda](https://keda.sh/) but wants to :
+* only handle upscale for http event
 * focus on layer 4
 * uses `endpointslice` instead of `endpoints`
 * not need root access in pods
 * do not inject custom proxy
+* be transparent as possible (only annotation driven behaviour)
+

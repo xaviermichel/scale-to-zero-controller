@@ -2,7 +2,7 @@
 
 set -e
 
-workDir=~/Téléchargements
+workDir=~/Downloads
 targetFile=../src/main/resources/META-INF/native-image/reflect-config.json
 
 filter1='io.fabric8.kubernetes.api.model'
@@ -69,7 +69,8 @@ done
 
 cat <<EOF >> $targetFile
   {"name": "io.neo9.scaler.access.configScaleToZeroConfig", "allDeclaredMethods": true, "allPublicConstructors": true},
-  {"name": "io.neo9.scaler.access.config.EnvNameMatcher", "allDeclaredMethods": true, "allPublicConstructors": true}
+  {"name": "io.neo9.scaler.access.config.EnvNameMatcher", "allDeclaredMethods": true, "allPublicConstructors": true},
+  {"name": "io.neo9.scaler.access.config.KeyValueWrapper", "allDeclaredMethods": true, "allPublicConstructors": true}
 ]
 EOF
 

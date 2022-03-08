@@ -6,7 +6,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.neo9.scaler.access.exceptions.MissingLabelException;
 import io.neo9.scaler.access.services.WorkloadHijackingService;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
 
 import static io.neo9.scaler.access.config.Commons.TRUE;
@@ -17,36 +16,35 @@ import static io.neo9.scaler.access.utils.common.KubernetesUtils.getResourceName
 @Slf4j
 public class StatefulsetController extends ReconnectableSingleWatcher<StatefulSet, StatefulSetList> {
 
-	public StatefulsetController(KubernetesClient kubernetesClient, WorkloadHijackingService workloadHijackingService) {
-		super(
-				/* unique name */
-				"statefulset-onScalableLabel",
-				/* watch what */
-				kubernetesClient.apps().statefulSets()
-						.inAnyNamespace()
-						.withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE),
-				/* on event */
-				(action, statefulset) -> {
-					String statefulsetNamespaceAndName = getResourceNamespaceAndName(statefulset);
-					log.trace("start process event on {}", statefulsetNamespaceAndName);
-					switch (action) {
-						case ADDED:
-						case MODIFIED:
-							log.info("update event detected for : {}", statefulsetNamespaceAndName);
-							try {
-								workloadHijackingService.releaseIfNecessary(statefulset);
-							}
-							catch (MissingLabelException e) {
-								log.error("panic: could not update statefulset", e);
-							}
-							break;
-						default:
-							// do nothing on deletion
-							break;
-					}
-					log.trace("end of process event on {}", statefulsetNamespaceAndName);
-					return null;
-				}
-		);
-	}
+    public StatefulsetController(KubernetesClient kubernetesClient, WorkloadHijackingService workloadHijackingService) {
+        super(
+                /* unique name */
+                "statefulset-onScalableLabel",
+                /* watch what */
+                kubernetesClient.apps().statefulSets()
+                        .inAnyNamespace()
+                        .withLabel(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE),
+                /* on event */
+                (action, statefulset) -> {
+                    String statefulsetNamespaceAndName = getResourceNamespaceAndName(statefulset);
+                    log.trace("start process event on {}", statefulsetNamespaceAndName);
+                    switch (action) {
+                        case ADDED:
+                        case MODIFIED:
+                            log.info("update event detected for : {}", statefulsetNamespaceAndName);
+                            try {
+                                workloadHijackingService.releaseIfNecessary(statefulset);
+                            } catch (MissingLabelException e) {
+                                log.error("panic: could not update statefulset", e);
+                            }
+                            break;
+                        default:
+                            // do nothing on deletion
+                            break;
+                    }
+                    log.trace("end of process event on {}", statefulsetNamespaceAndName);
+                    return null;
+                }
+        );
+    }
 }

@@ -9,13 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EnvNameMatcher {
+public class KeyValueWrapper {
 
-    private String regex;
+    private String key;
 
-    private String prefix;
+    private String value;
 
-    private String suffix;
-
-    private String rewriteHostname;
 }
