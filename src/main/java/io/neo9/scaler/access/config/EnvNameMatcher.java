@@ -17,4 +17,5 @@ public class EnvNameMatcher {
 
     private String suffix;
 
+    private String rewriteHostname;
 }

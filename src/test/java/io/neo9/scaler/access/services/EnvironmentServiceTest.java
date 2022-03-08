@@ -57,4 +57,27 @@ public class EnvironmentServiceTest {
 		assertThat(envNameRec).isEqualTo("staging");
 	}
 
+	@Test
+	public void shouldExtractTheRightEnvironmentNameWithUpstreamOverride() {
+		// given
+		ScaleToZeroConfig scaleToZeroConfig = new ScaleToZeroConfig();
+		scaleToZeroConfig.setEnvNameMatchers(List.of(
+				EnvNameMatcher.builder()
+						.regex("^.*\\.(.*)-dev$")
+						.prefix("")
+						.suffix("-dev")
+						.rewriteHostname("app.{{group1}}.dev.neokube.neo9.pro")
+						.build()
+		));
+		EnvironmentService environmentService = new EnvironmentService(null, null, null, scaleToZeroConfig);
+
+		// when
+		String envName = environmentService.getEnvironmentNameFromHost("varnish.xmichel-dev");
+		String hostName = environmentService.getEnvironmentHostname("varnish.xmichel-dev");
+
+		// then
+		assertThat(envName).isEqualTo("xmichel-dev");
+		assertThat(hostName).isEqualTo("app.xmichel.dev.neokube.neo9.pro");
+	}
+
 }

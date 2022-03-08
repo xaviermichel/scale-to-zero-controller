@@ -32,12 +32,13 @@ public class RedirectToSplashScreenController {
         String envHost = sourceHeaders.getHost().getHostName();
         log.info("handling redirection to splash screen for {}", envHost);
         String envName = environmentService.getEnvironmentNameFromHost(envHost);
+        String envRealHost = environmentService.getEnvironmentHostname(envHost);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(URI.create(
                 String.format("%s/wait.html?envUrl=http://%s&envName=%s",
                         scaleToZeroConfig.getPublicUrl(),
-                        envHost,
+                        envRealHost,
                         envName
                 )));
         return new ResponseEntity<>(headers, HttpStatus.SEE_OTHER);

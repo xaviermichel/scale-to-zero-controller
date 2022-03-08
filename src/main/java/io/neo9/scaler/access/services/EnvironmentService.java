@@ -18,8 +18,7 @@ import java.util.regex.Pattern;
 
 import static io.neo9.scaler.access.config.Commons.TRUE;
 import static io.neo9.scaler.access.config.Labels.IS_ALLOWED_TO_SCALE_LABEL_KEY;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.*;
 import static org.springframework.util.StringUtils.uncapitalize;
 
 @Service
@@ -77,6 +76,22 @@ public class EnvironmentService {
                 String prefix = isNotBlank(envNameMatcher.getPrefix()) ? envNameMatcher.getPrefix() : EMPTY;
                 String suffix = isNotBlank(envNameMatcher.getSuffix()) ? envNameMatcher.getSuffix() : EMPTY;
                 return String.format("%s%s%s", prefix, matcher.group(1), suffix);
+            }
+        }
+        return "default";
+    }
+
+    public String getEnvironmentHostname(String envHost) {
+        for (EnvNameMatcher envNameMatcher : scaleToZeroConfig.getEnvNameMatchers()) {
+            Pattern pattern = Pattern.compile(envNameMatcher.getRegex());
+            Matcher matcher = pattern.matcher(envHost);
+            if (matcher.find()) {
+                if (isBlank((envNameMatcher.getRewriteHostname()))) {
+                    return envHost;
+                }
+                String rewriteHost = envNameMatcher.getRewriteHostname();
+                rewriteHost = rewriteHost.replaceAll(Pattern.quote("{{group1}}"), matcher.group(1));
+                return rewriteHost;
             }
         }
         return "default";
