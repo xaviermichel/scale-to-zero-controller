@@ -60,8 +60,10 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: <service-name>.<service-namespace>
 [...]
 ```
+The upstream-vhost is override in order to have the same behaviour for internal and external service exchanges.
 
 That's all ! Deploy the controller (see `values/apply.sh` for an example of helm deployment), and you will have an on demand (traffic) scale for your app.
 
@@ -118,7 +120,7 @@ When the controller receive a request that is destined to a downscaled deploymen
 Similar projects
 ----------------
 
-This project is similar to [osiris](https://github.com/dailymotion-oss/osiris) and [knative](https://knative.dev/) but wants to :
+This project is similar to [osiris](https://github.com/dailymotion-oss/osiris), [knative](https://knative.dev/), and/or [keda](https://keda.sh/) but wants to :
 * only handle upscale for http event
 * focus on layer 4
 * uses `endpointslice` instead of `endpoints`

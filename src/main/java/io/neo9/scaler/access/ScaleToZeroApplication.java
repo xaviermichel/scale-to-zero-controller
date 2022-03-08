@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class ScaleToZeroApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ScaleToZeroApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ScaleToZeroApplication.class, args);
+    }
 
 }

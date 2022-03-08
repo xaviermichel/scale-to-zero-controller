@@ -2,7 +2,7 @@
 
 set -e
 
-workDir=~/Téléchargements
+workDir=~/Downloads
 targetFile=../src/main/resources/META-INF/native-image/reflect-config.json
 
 filter1='io.fabric8.kubernetes.api.model'

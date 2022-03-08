@@ -1,13 +1,13 @@
 package io.neo9.scaler.access.models;
 
-import java.net.InetSocketAddress;
-
 import lombok.Data;
+
+import java.net.InetSocketAddress;
 
 @Data
 public class UpscalingContext {
 
-	private InetSocketAddress proxyTargetAddress;
+    private InetSocketAddress proxyTargetAddress;
 
-	private boolean loadInBackgroundAndReturnSplashScreenForward = false;
+    private boolean loadInBackgroundAndReturnSplashScreenForward = false;
 }

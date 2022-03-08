@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class KeyValueWrapper {
 
-	private String key;
+    private String key;
 
-	private String value;
+    private String value;
 
 }

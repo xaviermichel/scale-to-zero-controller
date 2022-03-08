@@ -11,10 +11,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EnvNameMatcher {
 
-	private String regex;
+    private String regex;
 
-	private String prefix;
+    private String prefix;
 
-	private String suffix;
+    private String suffix;
 
 }
