@@ -47,7 +47,7 @@ for jarGroupArtefactVersion in \
     cd -
   fi
 
-  completeExclusionFilter='Fluent|Builder'
+  completeExclusionFilter='Fluent'
   if [ ! -z "${exclusionFilter}" ]; then
     completeExclusionFilter="${completeExclusionFilter}|${exclusionFilter}"
   fi
