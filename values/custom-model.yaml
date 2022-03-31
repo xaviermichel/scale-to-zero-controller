@@ -1,7 +1,7 @@
 pod:
   extraEnvMap:
     SCALER_PUBLIC_URL: "https://neokube.foncia.neo9.pro"
-    SCALER_ENV_NAME_MATCHERS_0_REGEX: "^.*\\.(.*)\\.dev\\.neokube\\.neo9\\.pro$"
+    SCALER_ENV_NAME_MATCHERS_0_REGEX: "^.*\\.(.*)-dev$"
     SCALER_ENV_NAME_MATCHERS_0_SUFFIX: "-dev"
     SCALER_ENV_NAME_MATCHERS_0_REWRITE_HOSTNAME: "app.{{group1}}.dev.neokube.neo9.pro"
 

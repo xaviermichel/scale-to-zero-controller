@@ -4,6 +4,9 @@
 
 NAMESPACE=xmichel-dev
 
+# disable kube downscaler (integration does not well works)
+kubectl annotate --overwrite namespace ${NAMESPACE} downscaler/exclude=true
+
 # add missing labels
 for workload in \
       statefulset:varnish:varnish \
