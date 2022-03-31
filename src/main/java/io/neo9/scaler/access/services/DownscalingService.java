@@ -5,6 +5,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.neo9.scaler.access.config.Annotations;
+import io.neo9.scaler.access.config.ScaleToZeroConfig;
 import io.neo9.scaler.access.repositories.DeploymentRepository;
 import io.neo9.scaler.access.repositories.StatefulsetRepository;
 import io.neo9.scaler.access.utils.common.KubernetesUtils;
@@ -28,6 +29,8 @@ import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 @Slf4j
 public class DownscalingService {
 
+    private final ScaleToZeroConfig scaleToZeroConfig;
+
     private final DeploymentRepository deploymentRepository;
 
     private final StatefulsetRepository statefulsetRepository;
@@ -36,19 +39,42 @@ public class DownscalingService {
 
     private final WorkloadService workloadService;
 
-    public DownscalingService(DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService, WorkloadService workloadService) {
+    public DownscalingService(ScaleToZeroConfig scaleToZeroConfig, DeploymentRepository deploymentRepository, StatefulsetRepository statefulsetRepository, PodService podService, WorkloadService workloadService) {
+        this.scaleToZeroConfig = scaleToZeroConfig;
         this.deploymentRepository = deploymentRepository;
         this.statefulsetRepository = statefulsetRepository;
         this.podService = podService;
         this.workloadService = workloadService;
     }
 
+    @Scheduled(cron = "${scaler.scaleDownCron.expression}", zone ="${scaler.scaleDownCron.timezone}")
+    public void scaleDownCron() {
+        log.info("scale down cron");
+        if (! scaleToZeroConfig.scaleDownCron().isEnabled()) {
+            return;
+        }
+        List<HasMetadata> workloads = collectScalableWorkloads();
+        log.info("will explore shut down possibilities for {}", workloads.stream().map(KubernetesUtils::getResourceNamespaceAndName).collect(toList()));
+        for (HasMetadata workload : workloads) {
+            scaleDown(workload);
+        }
+    }
+
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES, initialDelay = 1)
-    public void scaleDowLoop() {
-        log.info("scale down loop");
+    public void scaleDownFixedDelayLoop() {
+        log.info("scale down fixed delay loop");
+        List<HasMetadata> workloads = collectScalableWorkloads();
+        log.info("will explore shut down possibilities for {}", workloads.stream().map(KubernetesUtils::getResourceNamespaceAndName).collect(toList()));
+        for (HasMetadata workload : workloads) {
+            if (isNotEmpty(getAnnotationValue(DOWNSCALE_LOG_STRATEGY, workload))) {
+                scaleDownOnLogActivityStrategy(workload);
+            }
+            // more strategies may come here
+        }
+    }
 
+    private List<HasMetadata> collectScalableWorkloads() {
         List<HasMetadata> workloads = new ArrayList<>();
-
         for (Deployment deployment : deploymentRepository.findAllInAnyNamespace(Map.of(IS_ALLOWED_TO_SCALE_LABEL_KEY, TRUE))) {
             if (haveAnyAnnotation(deployment, ALL_DOWNSCALE_STRATEGY) && workloadService.isStarted(deployment)) {
                 workloads.add(deployment);
@@ -59,14 +85,7 @@ public class DownscalingService {
                 workloads.add(statefulSet);
             }
         }
-
-        log.info("will explore shut down possibilities for {}", workloads.stream().map(KubernetesUtils::getResourceNamespaceAndName).collect(toList()));
-        for (HasMetadata workload : workloads) {
-            if (isNotEmpty(getAnnotationValue(DOWNSCALE_LOG_STRATEGY, workload))) {
-                scaleDownOnLogActivityStrategy(workload);
-            }
-            // more strategies may come here
-        }
+        return workloads;
     }
 
     public void scaleDownOnLogActivityStrategy(HasMetadata workload) {

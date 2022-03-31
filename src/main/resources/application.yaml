@@ -40,3 +40,7 @@ scaler:
   onUpscaleFallbackOriginalReplicasAnnotations:
     - "downscaler/original-replicas"
   defaultOnUpscaleReplicaCount: 2
+  scaleDownCron:
+    enabled: true
+    expression: "0 0 20 * * *"
+    timezone: "Europe/Paris"
