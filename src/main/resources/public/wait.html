@@ -28,8 +28,7 @@
             </div>
 
             <div>
-                <i>You will be redirected to <span class="env-link"></span><span
-                        class="redirect-hint"> at the end of environment start<span</i>
+                <i>You will be redirected to <span class="env-link"></span><span class="redirect-hint"> at the end of environment start</span></i>
             </div>
 
         </div>
@@ -42,7 +41,7 @@
         const envName = decodeURIComponent(searchParams.get('envName'));
         const envUrl = decodeURIComponent(searchParams.get('envUrl'));
 
-        const SUCESS_THRESHOLD = 5;
+        const SUCCESS_THRESHOLD = 3;
         var currentsuccessThreshold = 0;
 
         function redirectToEnvironment() {
@@ -66,7 +65,7 @@
                     currentsuccessThreshold++;
                 }
 
-                if (currentsuccessThreshold >= SUCESS_THRESHOLD) {
+                if (currentsuccessThreshold >= SUCCESS_THRESHOLD) {
                     $(".non-ready-apps-wrapper").hide();
                     $(".redirect-hint").text(" in a few seconds...");
                     setTimeout(redirectToEnvironment, 3000);
