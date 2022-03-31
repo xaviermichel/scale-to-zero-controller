@@ -30,6 +30,9 @@ public class ScaleToZeroConfig {
     @Setter
     private List<KeyValueWrapper> onHijackAnnotationsToAdd;
 
+    @Setter
+    private ScaleDownCronConfig scaleDownCron;
+
     public Map<String, String> getOnHijackAnnotationsToAdd() {
         return onHijackAnnotationsToAdd.stream().collect(toMap(w -> w.getKey(), w -> w.getValue()));
     }
@@ -45,4 +48,8 @@ public class ScaleToZeroConfig {
     @Setter
     @Getter
     private Integer defaultOnUpscaleReplicaCount;
+
+    public ScaleDownCronConfig scaleDownCron() {
+        return scaleDownCron;
+    }
 }
